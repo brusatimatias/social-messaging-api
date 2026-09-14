@@ -1,166 +1,164 @@
 # CLAUDE.md
 
-Guía para trabajar en este repo. Léela antes de tocar código.
+Guide for working in this repo. Read it before touching code.
 
-## Qué es esto
+## What this is
 
-API de mensajería social: REST con Express + Sequelize/PostgreSQL, y un canal de mensajería en
-tiempo real con socket.io. Ver [README.md](README.md) para la descripción orientada a usuario.
+Social messaging API: REST with Express + Sequelize/PostgreSQL, plus a real-time messaging channel
+with socket.io. See [README.md](README.md) for the user-facing description.
 
 ## Stack
 
 - Node.js (>=16.19.1) + Express
-- PostgreSQL vía Sequelize (ORM) y `sequelize-cli` (migraciones)
-- socket.io para tiempo real (rooms = conversaciones)
-- jsonwebtoken para verificar el JWT de usuario (ver "Autenticación" más abajo)
-- Jest + Supertest + socket.io-client para tests
+- PostgreSQL via Sequelize (ORM) and `sequelize-cli` (migrations)
+- socket.io for real-time (rooms = conversations)
+- jsonwebtoken to verify the user JWT (see "Authentication" below)
+- Jest + Supertest + socket.io-client for tests
 
-## Comandos
+## Commands
 
-El proyecto corre local en la máquina del usuario — **no correr estos comandos por mi cuenta**
-(instalación, tests, lint, git status/diff); indicar cuál correr y dejar que el usuario lo ejecute
-y valide.
+The project runs locally on the user's machine — **don't run these commands yourself**
+(install, tests, lint, git status/diff); tell the user which one to run and let them run it
+and verify.
 
 ```bash
-npm install                        # instalar dependencias
-cp .env.example .env               # completar credenciales locales
-npx sequelize-cli db:migrate       # correr migraciones (requiere Postgres levantado)
-npm run dev                        # levantar con nodemon
-npm start                          # levantar en modo normal
+npm install                        # install dependencies
+cp .env.example .env               # fill in local credentials
+npx sequelize-cli db:migrate       # run migrations (requires Postgres running)
+npm run dev                        # run with nodemon
+npm start                          # run in normal mode
 npm run lint                       # ESLint
-npm test                           # correr la test suite (no requiere Postgres, todo mockeado)
+npm test                           # run the test suite (no Postgres needed, everything mocked)
 ```
 
-## Estructura
+## Structure
 
-- `app.js` — arma la app de Express: middlewares, `routes/v1` bajo `/api/v1`, y un error handler
-  centralizado al final (`err.status` → código HTTP; los routers solo hacen `next(error)`, no arman
-  la respuesta de error a mano). No levanta el servidor. Toda la lógica de qué auth aplica a qué
-  parte de `/api/v1` vive en `routes/v1/index.js`, no acá.
-- `bin/www` — crea el `http.Server`, lo pasa a `initSockets` y lo pone a escuchar.
-- `db.js` — instancia única de Sequelize, leída desde `config/config.js` según `NODE_ENV`.
-- `config/config.js` — config de conexión para la app **y** para `sequelize-cli`. `.sequelizerc`
-  apunta acá.
+- `app.js` — builds the Express app: middlewares, `routes/v1` mounted under `/api/v1`, and a
+  centralized error handler at the end (`err.status` → HTTP code; routers just call `next(error)`,
+  they don't build the error response by hand). Doesn't start the server. All logic about which auth
+  applies to which part of `/api/v1` lives in `routes/v1/index.js`, not here.
+- `bin/www` — creates the `http.Server`, passes it to `initSockets`, and starts listening.
+- `db.js` — single Sequelize instance, read from `config/config.js` based on `NODE_ENV`.
+- `config/config.js` — connection config for the app **and** for `sequelize-cli`. `.sequelizerc`
+  points here.
 - `models/` — `User`, `Conversation`, `ConversationParticipant` (join User↔Conversation), `Message`,
-  `Notification`. Cada modelo define `static associate(models)` pero no se auto-asocia;
-  `models/index.js` requiere todos los modelos y recién ahí llama `associate` en cada uno (evita
-  requires circulares). Al usar asociaciones (`include`, `belongsToMany`, transacciones vía
-  `sequelize`) importar desde `require('../models')`, no desde el archivo individual.
-- `migrations/` — deben reflejar los modelos. Orden importa: `User` → `Conversation` →
-  `ConversationParticipant` → `Message` → `Notification` → `deletedAt` en `User` (soft-delete).
-- `utils/HttpError.js` — `class HttpError extends Error { constructor(status, message) }`. Los
-  services tiran esto para errores de negocio (404/409/422/etc); el error handler de `app.js` lo
-  traduce al código HTTP. No usar `res.status().json()` a mano en las rutas para estos casos.
-- `middlewares/auth.js` — protege **todo** `/api/v1`: valida `Authorization: Bearer <jwt>` firmado
-  con `SECRET_KEY`. Un único mecanismo para dos tipos de caller, distinguidos por el claim del
-  payload: `uuid` → usuario (`req.userUuid`), `service` → llamada de servicio (`req.service`, ej.
-  `'social-api'`). Ver "Autenticación".
-- `middlewares/requireService.js` — corre *después* de `auth`, solo en `/internal/*`. Autenticación
-  (¿tenés un JWT válido?) no es lo mismo que autorización (¿tenés permiso para esto puntual?): un
-  usuario autenticado normal (token con `uuid`) pasa `auth` sin problema pero no tiene `req.service`,
-  así que `requireService` lo rechaza con 403 antes de llegar a las rutas de sync.
-- `routes/v1/index.js` — `router.use(auth)` primero (aplica a todo `/api/v1`), después
-  `router.use('/internal', requireService, ...)` para el sync, y recién ahí el resto (`users.js`,
+  `Notification`. Each model defines `static associate(models)` but doesn't self-associate;
+  `models/index.js` requires every model and only then calls `associate` on each one (avoids
+  circular requires). When using associations (`include`, `belongsToMany`, transactions via
+  `sequelize`), import from `require('../models')`, not from the individual file.
+- `migrations/` — must reflect the models. Order matters: `User` → `Conversation` →
+  `ConversationParticipant` → `Message` → `Notification` → `deletedAt` on `User` (soft-delete).
+- `utils/HttpError.js` — `class HttpError extends Error { constructor(status, message) }`. Services
+  throw this for business errors (404/409/422/etc); `app.js`'s error handler translates it to the
+  HTTP code. Don't use `res.status().json()` by hand in routes for these cases.
+- `middlewares/auth.js` — protects **all** of `/api/v1`: validates `Authorization: Bearer <jwt>`
+  signed with `SECRET_KEY`. A single mechanism for two kinds of caller, distinguished by the claim in
+  the payload: `uuid` → user (`req.userUuid`), `service` → service call (`req.service`, e.g.
+  `'social-api'`). See "Authentication".
+- `middlewares/requireService.js` — runs *after* `auth`, only on `/internal/*`. Authentication (do
+  you have a valid JWT?) isn't the same as authorization (are you allowed to do this specific
+  thing?): a normal authenticated user (token with `uuid`) passes `auth` fine but doesn't have
+  `req.service`, so `requireService` rejects it with 403 before it reaches the sync routes.
+- `routes/v1/index.js` — `router.use(auth)` first (applies to all of `/api/v1`), then
+  `router.use('/internal', requireService, ...)` for sync, and only then the rest (`users.js`,
   `conversations.js`, `messages.js`, `notifications.js`).
-- `routes/v1/internal/` — `users.js` (`PUT`/`DELETE /api/v1/internal/users/:uuid`, sync desde la
-  Social API). Vive adentro de `/api/v1` (versionado junto con el resto); lo que lo distingue no es
-  un mecanismo de auth distinto, sino el claim `service` que exige `requireService`.
-- `services/` — un service por recurso (`UserService`, `ConversationService`, `MessageService`,
-  `NotificationService`), reusado entre rutas REST y el handler de sockets. Nueva lógica de dominio
-  va acá, no directo en las rutas/handlers.
-- `sockets/index.js` — `initSockets(httpServer)`. El handshake requiere `auth: { token }` (mismo JWT
-  que en REST) vía `io.use(...)`; expone `socket.userUuid`. Eventos: `joinRoom` (valida que
-  `socket.userUuid` sea `ConversationParticipant` de esa conversación antes de unir — si no, no
-  pasa nada, sin error explícito al cliente) y `sendMessage` (persiste vía `MessageService`, que
-  además genera un `Notification` por cada otro participante, y hace broadcast de `newMessage` a la
-  room). Nota: `sendMessage` todavía toma `senderId` del payload del cliente, no de
-  `socket.userUuid` — no se llegó a blindar eso, ver "Todavía no implementado".
-- `tests/` — espeja la estructura de arriba. Los tests mockean modelos/services
-  (`jest.mock('../../models', ...)`, `jest.mock('../../services/XService', ...)`) para no requerir
+- `routes/v1/internal/` — `users.js` (`PUT`/`DELETE /api/v1/internal/users/:uuid`, sync from the
+  Social API). Lives inside `/api/v1` (versioned along with everything else); what sets it apart
+  isn't a different auth mechanism, but the `service` claim that `requireService` requires.
+- `services/` — one service per resource (`UserService`, `ConversationService`, `MessageService`,
+  `NotificationService`), reused between REST routes and the socket handler. New domain logic goes
+  here, not directly in routes/handlers.
+- `sockets/index.js` — `initSockets(httpServer)`. The handshake requires `auth: { token }` (same JWT
+  as REST) via `io.use(...)`; exposes `socket.userUuid`. Events: `joinRoom` (validates that
+  `socket.userUuid` is a `ConversationParticipant` of that conversation before joining — if not,
+  nothing happens, no explicit error to the client) and `sendMessage` (persists via `MessageService`,
+  which also generates a `Notification` for each other participant, and broadcasts `newMessage` to
+  the room). Note: `sendMessage` still takes `senderId` from the client payload, not from
+  `socket.userUuid` — that hasn't been locked down yet, see "Not implemented yet".
+- `tests/` — mirrors the structure above. Tests mock models/services
+  (`jest.mock('../../models', ...)`, `jest.mock('../../services/XService', ...)`) so they don't need
   Postgres.
 
-## Convenciones
+## Conventions
 
-- Código nuevo: `const`/`let`, no `var` (el boilerplate viejo de `bin/www` usa `var`, no hace falta
-  tocarlo).
-- Async/await + try/catch con `next(error)` en las rutas Express. Para errores de negocio, tirar
-  `new HttpError(status, message)` desde el service y dejar que el error handler de `app.js` lo
-  traduzca — no armar la respuesta de error a mano en cada ruta.
-- Variables de entorno: `PORT`, `NODE_ENV`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `DB_HOST`,
-  `SECRET_KEY`. Ver `.env.example`. `.env` está gitignoreado — nunca commitear credenciales reales.
-  `SECRET_KEY` es el único secreto para todo: firma/verifica tanto los JWT de usuario como los de
-  servicio (decisión consciente, no accidental). Si se compromete, se compromete todo `/api/v1`.
-- Al agregar un modelo nuevo: modelo en `models/` (+ `associate` si aplica), migración en
-  `migrations/`, y si expone datos por REST o sockets, un service dedicado — no acceder al modelo
-  directo desde la ruta/handler salvo lecturas simples de un solo modelo (ej. `routes/v1/users.js`).
+- New code: `const`/`let`, not `var` (the old `bin/www` boilerplate uses `var`, no need to touch it).
+- Async/await + try/catch with `next(error)` in Express routes. For business errors, throw
+  `new HttpError(status, message)` from the service and let `app.js`'s error handler translate it —
+  don't build the error response by hand in each route.
+- Environment variables: `PORT`, `NODE_ENV`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `DB_HOST`,
+  `SECRET_KEY`. See `.env.example`. `.env` is gitignored — never commit real credentials.
+  `SECRET_KEY` is the single secret for everything: it signs/verifies both user and service JWTs
+  (a conscious decision, not an accident). If it's compromised, all of `/api/v1` is compromised.
+- When adding a new model: model in `models/` (+ `associate` if applicable), migration in
+  `migrations/`, and if it exposes data over REST or sockets, a dedicated service — don't access the
+  model directly from the route/handler except for simple single-model reads (e.g.
+  `routes/v1/users.js`).
 
-## Modelo de datos
+## Data model
 
-`User` **no** es dueño de la identidad/auth — según `doc/Social App-architecture.drawio.png` esta
-API (Node/Postgres) es la "Messaging API", separada de una "Social API" (Rails) que maneja el perfil
-completo y el login. Por eso `User` acá solo tiene `uuid` (referencia externa a esa Social API),
-`name`, `lastname`, `fullName` — sin `password`/`email`/auth propios, y es `paranoid: true`
-(soft-delete: `User.destroy()` marca `deletedAt` en vez de borrar la fila, para no romper la FK de
-`Message.senderId`, que a propósito no tiene `onDelete`).
+`User` is **not** the owner of identity/auth — per `doc/Social App-architecture.drawio.png` this API
+(Node/Postgres) is the "Messaging API", separate from a "Social API" (Rails) that owns the full
+profile and login. That's why `User` here only has `uuid` (external reference to that Social API),
+`name`, `lastname`, `fullName` — no `password`/`email`/auth of its own, and it's `paranoid: true`
+(soft-delete: `User.destroy()` marks `deletedAt` instead of deleting the row, so it doesn't break the
+FK on `Message.senderId`, which intentionally has no `onDelete`).
 
-`Conversation` puede ser 1:1 o grupal (`isGroup`); sus miembros están en `ConversationParticipant`
-(join table `User`↔`Conversation`, único por `(conversationId, userId)`). No hay dedupe de
-conversaciones 1:1 repetidas — crear dos veces la conversación entre los mismos dos usuarios crea dos
-filas (simplificación conocida). `Message.conversationId` reemplazó al viejo `roomId` string.
-`Notification` referencia un `User` (destinatario) y un `Message` (origen), con `isRead`
-(default `false`) para marcar leído/no leído — hoy nada la marca como leída, solo se generan.
+`Conversation` can be 1:1 or group (`isGroup`); its members live in `ConversationParticipant` (join
+table `User`↔`Conversation`, unique per `(conversationId, userId)`). There's no dedupe of repeated
+1:1 conversations — creating the conversation between the same two users twice creates two rows
+(known simplification). `Message.conversationId` replaced the old `roomId` string. `Notification`
+references a `User` (recipient) and a `Message` (source), with `isRead` (default `false`) to mark
+read/unread — today nothing marks it as read, they're only generated.
 
-## Sync de usuarios (Social API → acá)
+## User sync (Social API → here)
 
-`PUT /api/v1/internal/users/:uuid` (upsert idempotente) y `DELETE /api/v1/internal/users/:uuid`
-(soft-delete), protegidos por `auth` + `requireService` (ver "Autenticación"). La Social API (fuera
-de este repo) es responsable de llamarlos al crear/actualizar/borrar un usuario, con un JWT de
-servicio (`{ service: 'social-api' }`, sin `uuid`) firmado con el mismo `SECRET_KEY` — ver el detalle
-de qué le toca a ese lado del sistema en el plan guardado de esta sesión si hace falta retomarlo.
+`PUT /api/v1/internal/users/:uuid` (idempotent upsert) and `DELETE /api/v1/internal/users/:uuid`
+(soft-delete), protected by `auth` + `requireService` (see "Authentication"). The Social API (outside
+this repo) is responsible for calling these on user create/update/delete, with a service JWT
+(`{ service: 'social-api' }`, no `uuid`) signed with the same `SECRET_KEY` — see the details of what
+that side of the system needs to do in this session's saved plan if it needs to be revisited.
 
-## Autenticación
+## Authentication
 
-Esta API no maneja login/passwords — solo **verifica** JWT firmados con `SECRET_KEY` (HS256). Un
-solo mecanismo (`middlewares/auth.js`) para dos tipos de caller, distinguidos por el claim presente
-en el payload:
-- `uuid` → usuario final (Social API lo emite al loguear a alguien) → `req.userUuid`.
-- `service` → la Social API llamando en nombre propio, no de un usuario (ej. el sync) →
-  `req.service`.
+This API doesn't handle login/passwords — it only **verifies** JWTs signed with `SECRET_KEY`
+(HS256). A single mechanism (`middlewares/auth.js`) for two kinds of caller, distinguished by the
+claim present in the payload:
+- `uuid` → end user (the Social API issues it when logging someone in) → `req.userUuid`.
+- `service` → the Social API calling on its own behalf, not a user's (e.g. sync) → `req.service`.
 
-`auth` se aplica a **todo** `/api/v1` (`router.use(auth)` en `routes/v1/index.js`, no ruta por
-ruta) — no hay caso de uso anónimo real acá. En sockets, `sockets/index.js` hace lo mismo en el
-handshake, pero solo acepta tokens de usuario (`socket.userUuid`); un token de servicio no tiene
-`uuid` y el handshake lo rechaza.
+`auth` applies to **all** of `/api/v1` (`router.use(auth)` in `routes/v1/index.js`, not route by
+route) — there's no real anonymous use case here. On sockets, `sockets/index.js` does the same in
+the handshake, but only accepts user tokens (`socket.userUuid`); a service token has no `uuid` and
+the handshake rejects it.
 
-Autenticación (¿tenés un JWT válido?) no es autorización (¿tenés permiso para *esto*?):
-- Para `/api/v1/internal/*`, `middlewares/requireService.js` corre después de `auth` y exige
-  `req.service` — un usuario autenticado normal (token con `uuid`) pasa `auth` pero no tiene
-  `req.service`, así que le devuelve 403.
-- Para el resto, hoy solo se valida identidad, no permiso fino sobre el recurso puntual (ej. sacar a
-  alguien de una conversación ajena no está bloqueado), salvo `joinRoom` en sockets, que sí chequea
-  membership.
+Authentication (do you have a valid JWT?) isn't authorization (are you allowed to do *this*?):
+- For `/api/v1/internal/*`, `middlewares/requireService.js` runs after `auth` and requires
+  `req.service` — a normal authenticated user (token with `uuid`) passes `auth` but doesn't have
+  `req.service`, so it gets a 403.
+- For everything else, today only identity is validated, not fine-grained permission on the specific
+  resource (e.g. removing someone from a conversation you're not part of isn't blocked), except for
+  `joinRoom` in sockets, which does check membership.
 
-## Todavía no implementado
+## Not implemented yet
 
-- `sendMessage` (socket) sigue tomando `senderId` del payload del cliente en vez de resolverlo desde
-  `socket.userUuid` — a diferencia de `joinRoom`, no se blindó. El fallback REST `POST
-  /conversations/:id/messages` tiene el mismo nivel de confianza (toma `senderId` explícito en el
-  body, sin auth) — quedó así a propósito para esta vuelta, no por descuido.
-- No hay push en vivo de `newNotification` por socket — las notificaciones se generan y persisten,
-  pero solo se leen vía `GET /api/v1/notifications`. Requeriría trackear qué usuario está en qué
-  socket.
-- No hay endpoint para marcar una `Notification` como leída.
-- Deduplicar conversaciones 1:1 (ver arriba).
+- `sendMessage` (socket) still takes `senderId` from the client payload instead of resolving it from
+  `socket.userUuid` — unlike `joinRoom`, that hasn't been locked down. The REST fallback `POST
+  /conversations/:id/messages` has the same level of trust (takes an explicit `senderId` in the
+  body, no auth) — left that way on purpose for this round, not by oversight.
+- No live `newNotification` push over sockets — notifications are generated and persisted, but only
+  read via `GET /api/v1/notifications`. Would require tracking which user is on which socket.
+- No endpoint to mark a `Notification` as read.
+- Deduplicating 1:1 conversations (see above).
 
 ## Testing
 
-`npm test` corre sin Postgres levantado porque los tests mockean modelos/services. Para probar contra
-una base real: levantar Postgres, `NODE_ENV=test npx sequelize-cli db:migrate` contra la DB
-`social-messaging-api-test`, y escribir/correr tests de integración aparte (hoy no existen).
+`npm test` runs without Postgres up because the tests mock models/services. To test against a real
+database: start Postgres, `NODE_ENV=test npx sequelize-cli db:migrate` against the
+`social-messaging-api-test` DB, and write/run integration tests separately (none exist today).
 
 ## CI
 
-`.github/workflows/ci.yml` corre en cada push (a cualquier rama) y en cada PR, con dos jobs
-independientes (`lint` y `test`), para que un fallo de lint no oculte el resultado de los tests ni
-viceversa. Ninguno de los dos requiere Postgres. Si agregás un paso nuevo (build, audit, etc.), que
-sea su propio job por la misma razón.
+`.github/workflows/ci.yml` runs on every push (to any branch) and every PR, with two independent
+jobs (`lint` and `test`), so a lint failure doesn't hide the test results or vice versa. Neither one
+requires Postgres. If you add a new step (build, audit, etc.), give it its own job for the same
+reason.
