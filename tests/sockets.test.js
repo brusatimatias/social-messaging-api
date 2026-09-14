@@ -1,22 +1,33 @@
-jest.mock('../services/Service', () => ({
+process.env.SECRET_KEY = 'test-secret';
+
+jest.mock('../services/MessageService', () => ({
   createMessage: jest.fn(),
   getMessagesByConversation: jest.fn(),
 }));
 
+jest.mock('../models', () => ({
+  User: { findOne: jest.fn() },
+  ConversationParticipant: { findOne: jest.fn() },
+}));
+
 const http = require('http');
+const jwt = require('jsonwebtoken');
 const { io: ioClient } = require('socket.io-client');
 const initSockets = require('../sockets');
-const Service = require('../services/Service');
+const MessageService = require('../services/MessageService');
+const { User, ConversationParticipant } = require('../models');
 
 describe('sockets', () => {
   let httpServer;
   let port;
+  let url;
 
   beforeAll((done) => {
     httpServer = http.createServer();
     initSockets(httpServer);
     httpServer.listen(0, () => {
       port = httpServer.address().port;
+      url = `http://localhost:${port}`;
       done();
     });
   });
@@ -29,23 +40,38 @@ describe('sockets', () => {
     jest.clearAllMocks();
   });
 
-  it('broadcasts a persisted message to everyone in the conversation', (done) => {
-    const message = { id: 1, conversationId: 1, senderId: 1, content: 'hi there' };
-    Service.createMessage.mockResolvedValue(message);
+  it('rejects the connection when no auth token is provided', (done) => {
+    const client = ioClient(url, { transports: ['websocket'] });
 
-    const client = ioClient(`http://localhost:${port}`, { transports: ['websocket'] });
+    client.on('connect_error', (error) => {
+      expect(error.message).toBe('Missing auth token');
+      client.close();
+      done();
+    });
+  });
+
+  it('joins the room only when the user is a participant, then broadcasts new messages', (done) => {
+    const token = jwt.sign({ uuid: 'user-uuid-1' }, process.env.SECRET_KEY);
+    const message = { id: 1, conversationId: 1, senderId: 1, content: 'hi there' };
+
+    User.findOne.mockResolvedValue({ id: 1, uuid: 'user-uuid-1' });
+    ConversationParticipant.findOne.mockResolvedValue({ conversationId: 1, userId: 1 });
+    MessageService.createMessage.mockResolvedValue(message);
+
+    const client = ioClient(url, { transports: ['websocket'], auth: { token } });
 
     client.on('connect', () => {
       client.emit('joinRoom', 1);
-      client.emit('sendMessage', { conversationId: 1, senderId: 1, content: 'hi there' });
+      setTimeout(() => {
+        client.emit('sendMessage', { conversationId: 1, senderId: 1, content: 'hi there' });
+      }, 50);
     });
 
     client.on('newMessage', (received) => {
       expect(received).toEqual(message);
-      expect(Service.createMessage).toHaveBeenCalledWith({
-        conversationId: 1,
-        senderId: 1,
-        content: 'hi there',
+      expect(User.findOne).toHaveBeenCalledWith({ where: { uuid: 'user-uuid-1' } });
+      expect(ConversationParticipant.findOne).toHaveBeenCalledWith({
+        where: { conversationId: 1, userId: 1 },
       });
       client.close();
       done();

@@ -1,44 +1,61 @@
-jest.mock('../../../models/User', () => ({
-  findByPk: jest.fn(),
+jest.mock('../../../models', () => ({
+  User: { findOne: jest.fn() },
 }));
 
 const request = require('supertest');
 const app = require('../../../app');
-const User = require('../../../models/User');
+const { User } = require('../../../models');
+const authHeader = require('../../helpers/authHeader');
 
-describe('GET /api/v1/users/:id', () => {
+describe('GET /api/v1/users/:uuid', () => {
+  const originalSecret = process.env.SECRET_KEY;
+  const uuid = '2f1e2b0a-2b3a-4a7a-9a3b-0f1a2b3c4d5e';
+
+  beforeEach(() => {
+    process.env.SECRET_KEY = 'test-secret';
+  });
+
   afterEach(() => {
+    process.env.SECRET_KEY = originalSecret;
     jest.clearAllMocks();
   });
 
+  it('requires a bearer token', async () => {
+    const response = await request(app).get(`/api/v1/users/${uuid}`);
+
+    expect(response.status).toBe(401);
+    expect(User.findOne).not.toHaveBeenCalled();
+  });
+
   it('returns the user when it exists', async () => {
-    User.findByPk.mockResolvedValue({
+    User.findOne.mockResolvedValue({
       id: 1,
-      uuid: '2f1e2b0a-2b3a-4a7a-9a3b-0f1a2b3c4d5e',
+      uuid,
       name: 'Ada',
       lastname: 'Lovelace',
       fullName: 'Ada Lovelace',
     });
 
-    const response = await request(app).get('/api/v1/users/1');
+    const response = await request(app).get(`/api/v1/users/${uuid}`).set(authHeader());
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
       id: 1,
-      uuid: '2f1e2b0a-2b3a-4a7a-9a3b-0f1a2b3c4d5e',
+      uuid,
       name: 'Ada',
       lastname: 'Lovelace',
       fullName: 'Ada Lovelace',
     });
-    expect(User.findByPk).toHaveBeenCalledWith('1', {
+    expect(User.findOne).toHaveBeenCalledWith({
+      where: { uuid },
       attributes: ['id', 'uuid', 'name', 'lastname', 'fullName'],
     });
   });
 
   it('returns 404 when the user does not exist', async () => {
-    User.findByPk.mockResolvedValue(null);
+    User.findOne.mockResolvedValue(null);
 
-    const response = await request(app).get('/api/v1/users/999');
+    const response = await request(app).get(`/api/v1/users/${uuid}`).set(authHeader());
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ message: 'User not found' });
