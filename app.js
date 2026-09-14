@@ -4,7 +4,7 @@ var express = require('express');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-var usersRouter = require('./routes/users');
+var v1Router = require('./routes/v1');
 
 var app = express();
 
@@ -15,6 +15,6 @@ app.use(cookieParser());
 
 app.get('/', (_, res) => res.json({ message: "Social Messaging API" }));
 
-app.use('/api', usersRouter);
+app.use('/api/v1', v1Router);
 
 module.exports = app;

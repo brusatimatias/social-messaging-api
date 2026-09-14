@@ -52,6 +52,8 @@ This API leverages various technologies and tools, including:
 - PostgreSQL as the database for storing message history and user data.
 - pg and pg-hstore for PostgreSQL database interaction.
 - Sequelize as the ORM (Object-Relational Mapping) for database operations.
+- socket.io for real-time WebSocket messaging.
+- Jest and Supertest for the test suite.
 
 ## Prerequisites
 
@@ -82,16 +84,20 @@ Follow these steps to set up and run the Social Messaging API:
 
 3. **Configure environment variables:**
 
-   Create a `.env` file in the root of your project with the following environment variables for PostgreSQL:
+   Copy `.env.example` to `.env` and adjust it to match your PostgreSQL setup:
+
+   ```bash
+   cp .env.example .env
+   ```
 
    ```env
    PORT=3001
+   NODE_ENV=development
    POSTGRES_USER=yourusername
    POSTGRES_PASSWORD=yourpassword
+   DB_HOST=localhost
    SECRET_KEY=yoursecretkey
    ```
-
-   Replace `yourusername`, `yourpassword`, and adjust the `DATABASE_URL` to match your PostgreSQL database configuration.
 
 4. **Run Sequelize migrations:**
 
@@ -107,11 +113,23 @@ Follow these steps to set up and run the Social Messaging API:
    npm start
    ```
 
-   The API should now be running locally and accessible at `http://localhost:3001`.
+   The API should now be running locally and accessible at `http://localhost:3001`. Use `npm run dev` instead to start it with `nodemon` for local development.
+
+6. **Run the test suite:**
+
+   ```bash
+   npm test
+   ```
+
+   The tests mock the Sequelize models, so they run without a live PostgreSQL connection.
 
 ## Usage
 
-The Social Messaging API enables real-time messaging via WebSocket connections. Clients can connect for instant messaging, group chats, and notifications. Users can also use RESTful endpoints to query conversations and messages for historical data access.
+The Social Messaging API enables real-time messaging via WebSocket connections (socket.io). Clients
+connect, emit `joinRoom` with a room id to join a group chat, and emit `sendMessage` with
+`{ roomId, senderId, content }` to send a message — the server persists it and broadcasts a
+`newMessage` event to everyone in that room. Users can also use RESTful endpoints to query
+conversations and messages for historical data access (e.g. `GET /api/v1/conversations/:roomId/messages`).
 
 If you're a developer interested in using our API or have any questions, please don't hesitate to get in touch:
 
