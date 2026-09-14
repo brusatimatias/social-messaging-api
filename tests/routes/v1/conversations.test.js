@@ -34,7 +34,7 @@ describe('conversations routes', () => {
         .send({ isGroup: false, participantUuids: ['u1', 'u2'] });
 
       expect(response.status).toBe(201);
-      expect(response.body).toEqual(conversation);
+      expect(response.body).toEqual({ data: conversation });
       expect(ConversationService.createConversation).toHaveBeenCalledWith({
         isGroup: false,
         name: undefined,
@@ -69,7 +69,7 @@ describe('conversations routes', () => {
         .set(authHeader('u1'));
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual(conversations);
+      expect(response.body).toEqual({ data: conversations });
       expect(ConversationService.getConversationsForUser).toHaveBeenCalledWith('u1');
     });
   });
@@ -82,7 +82,7 @@ describe('conversations routes', () => {
       const response = await request(app).get('/api/v1/conversations/1').set(authHeader());
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual(conversation);
+      expect(response.body).toEqual({ data: conversation });
     });
   });
 
@@ -97,7 +97,7 @@ describe('conversations routes', () => {
         .send({ userUuid: 'u3' });
 
       expect(response.status).toBe(201);
-      expect(response.body).toEqual(participant);
+      expect(response.body).toEqual({ data: participant });
       expect(ConversationService.addParticipant).toHaveBeenCalledWith('1', 'u3');
     });
 

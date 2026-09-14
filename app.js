@@ -20,7 +20,8 @@ app.use('/api/v1', v1Router);
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   const status = err.status || 500;
-  res.status(status).json({ message: status < 500 ? err.message : 'Internal server error' });
+  const message = status < 500 ? err.message : 'Internal server error';
+  res.status(status).json({ error: { message } });
 });
 
 module.exports = app;

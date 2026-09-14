@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { User } = require('../../models');
+const HttpError = require('../../utils/HttpError');
+const { sendData } = require('../../utils/apiResponse');
 
 router.get('/users/:uuid', async (req, res, next) => {
   try {
@@ -10,10 +12,10 @@ router.get('/users/:uuid', async (req, res, next) => {
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      throw new HttpError(404, 'User not found');
     }
 
-    res.json(user);
+    sendData(res, user);
   } catch (error) {
     next(error);
   }

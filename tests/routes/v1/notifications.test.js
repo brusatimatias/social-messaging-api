@@ -32,7 +32,7 @@ describe('GET /api/v1/notifications', () => {
     const response = await request(app).get('/api/v1/notifications').set(authHeader('u1'));
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual(notifications);
+    expect(response.body).toEqual({ data: notifications });
     expect(NotificationService.getNotificationsForUser).toHaveBeenCalledWith('u1');
   });
 });

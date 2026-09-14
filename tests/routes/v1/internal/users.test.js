@@ -57,7 +57,7 @@ describe('internal users routes', () => {
         .send({ name: 'Ada', lastname: 'Lovelace', fullName: 'Ada Lovelace' });
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual(user);
+      expect(response.body).toEqual({ data: user });
       expect(UserService.upsertUser).toHaveBeenCalledWith({
         uuid: 'uuid-1',
         name: 'Ada',

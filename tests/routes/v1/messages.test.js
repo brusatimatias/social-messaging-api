@@ -39,7 +39,7 @@ describe('messages routes', () => {
         .set(authHeader());
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual(messages);
+      expect(response.body).toEqual({ data: messages });
       expect(MessageService.getMessagesByConversation).toHaveBeenCalledWith('1');
     });
   });
@@ -55,7 +55,7 @@ describe('messages routes', () => {
         .send({ senderId: 1, content: 'hi' });
 
       expect(response.status).toBe(201);
-      expect(response.body).toEqual(created);
+      expect(response.body).toEqual({ data: created });
       expect(MessageService.createMessage).toHaveBeenCalledWith({
         conversationId: '1',
         senderId: 1,

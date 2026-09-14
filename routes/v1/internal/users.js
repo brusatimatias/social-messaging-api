@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const UserService = require('../../../services/UserService');
 const HttpError = require('../../../utils/HttpError');
+const { sendData } = require('../../../utils/apiResponse');
 
 router.put('/users/:uuid', async (req, res, next) => {
   try {
@@ -12,7 +13,7 @@ router.put('/users/:uuid', async (req, res, next) => {
     }
 
     const user = await UserService.upsertUser({ uuid: req.params.uuid, name, lastname, fullName });
-    res.json(user);
+    sendData(res, user);
   } catch (error) {
     next(error);
   }

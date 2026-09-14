@@ -40,11 +40,13 @@ describe('GET /api/v1/users/:uuid', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      id: 1,
-      uuid,
-      name: 'Ada',
-      lastname: 'Lovelace',
-      fullName: 'Ada Lovelace',
+      data: {
+        id: 1,
+        uuid,
+        name: 'Ada',
+        lastname: 'Lovelace',
+        fullName: 'Ada Lovelace',
+      },
     });
     expect(User.findOne).toHaveBeenCalledWith({
       where: { uuid },
@@ -58,6 +60,6 @@ describe('GET /api/v1/users/:uuid', () => {
     const response = await request(app).get(`/api/v1/users/${uuid}`).set(authHeader());
 
     expect(response.status).toBe(404);
-    expect(response.body).toEqual({ message: 'User not found' });
+    expect(response.body).toEqual({ error: { message: 'User not found' } });
   });
 });

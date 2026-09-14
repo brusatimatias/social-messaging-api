@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const ConversationService = require('../../services/ConversationService');
 const HttpError = require('../../utils/HttpError');
+const { sendData } = require('../../utils/apiResponse');
 
 router.get('/conversations', async (req, res, next) => {
   try {
     const conversations = await ConversationService.getConversationsForUser(req.userUuid);
-    res.json(conversations);
+    sendData(res, conversations);
   } catch (error) {
     next(error);
   }
@@ -25,7 +26,7 @@ router.post('/conversations', async (req, res, next) => {
       name,
       participantUuids,
     });
-    res.status(201).json(conversation);
+    sendData(res, conversation, 201);
   } catch (error) {
     next(error);
   }
@@ -34,7 +35,7 @@ router.post('/conversations', async (req, res, next) => {
 router.get('/conversations/:id', async (req, res, next) => {
   try {
     const conversation = await ConversationService.getConversationById(req.params.id);
-    res.json(conversation);
+    sendData(res, conversation);
   } catch (error) {
     next(error);
   }
@@ -49,7 +50,7 @@ router.post('/conversations/:id/participants', async (req, res, next) => {
     }
 
     const participant = await ConversationService.addParticipant(req.params.id, userUuid);
-    res.status(201).json(participant);
+    sendData(res, participant, 201);
   } catch (error) {
     next(error);
   }

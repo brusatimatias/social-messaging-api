@@ -51,6 +51,10 @@ npm test                           # run the test suite (no Postgres needed, eve
 - `utils/HttpError.js` — `class HttpError extends Error { constructor(status, message) }`. Services
   throw this for business errors (404/409/422/etc); `app.js`'s error handler translates it to the
   HTTP code. Don't use `res.status().json()` by hand in routes for these cases.
+- `utils/apiResponse.js` — `sendData(res, data, status = 200)`, the only way routes send a
+  successful body: wraps it as `{ data }`. Pairs with `app.js`'s error handler, which always responds
+  `{ error: { message } }`. A 204 (no content) just calls `res.status(204).send()` directly — there's
+  no body to wrap.
 - `middlewares/auth.js` — protects **all** of `/api/v1`: validates `Authorization: Bearer <jwt>`
   signed with `SECRET_KEY`. A single mechanism for two kinds of caller, distinguished by the claim in
   the payload: `uuid` → user (`req.userUuid`), `service` → service call (`req.service`, e.g.

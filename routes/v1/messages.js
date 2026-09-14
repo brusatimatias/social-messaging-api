@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const MessageService = require('../../services/MessageService');
 const HttpError = require('../../utils/HttpError');
+const { sendData } = require('../../utils/apiResponse');
 
 router.get('/conversations/:conversationId/messages', async (req, res, next) => {
   try {
     const messages = await MessageService.getMessagesByConversation(req.params.conversationId);
-    res.json(messages);
+    sendData(res, messages);
   } catch (error) {
     next(error);
   }
@@ -25,7 +26,7 @@ router.post('/conversations/:conversationId/messages', async (req, res, next) =>
       senderId,
       content,
     });
-    res.status(201).json(message);
+    sendData(res, message, 201);
   } catch (error) {
     next(error);
   }
