@@ -1,35 +1,33 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../db');
 
-class User extends Model {}
+class Message extends Model {}
 
-User.init(
+Message.init(
   {
     id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
     },
-    username: {
+    roomId: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
     },
-    email: {
-      type: DataTypes.STRING,
+    senderId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
-      unique: true,
     },
-    password: {
-      type: DataTypes.STRING,
+    content: {
+      type: DataTypes.TEXT,
       allowNull: false,
     },
   },
   {
     sequelize,
-    modelName: 'User',
-    tableName: 'Users',
+    modelName: 'Message',
+    tableName: 'Messages',
   }
 );
 
-module.exports = User;
+module.exports = Message;
