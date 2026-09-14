@@ -5,7 +5,7 @@ const User = require('../../models/User');
 router.get('/users/:id', async (req, res, next) => {
   try {
     const user = await User.findByPk(req.params.id, {
-      attributes: ['id', 'username', 'email'],
+      attributes: ['id', 'uuid', 'name', 'lastname', 'fullName'],
     });
 
     if (!user) {

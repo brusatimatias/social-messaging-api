@@ -1,17 +1,17 @@
 const Message = require('../models/Message');
 
-async function createMessage({ roomId, senderId, content }) {
-  return Message.create({ roomId, senderId, content });
+async function createMessage({ conversationId, senderId, content }) {
+  return Message.create({ conversationId, senderId, content });
 }
 
-async function getMessagesByRoom(roomId) {
+async function getMessagesByConversation(conversationId) {
   return Message.findAll({
-    where: { roomId },
+    where: { conversationId },
     order: [['createdAt', 'ASC']],
   });
 }
 
 module.exports = {
   createMessage,
-  getMessagesByRoom,
+  getMessagesByConversation,
 };

@@ -1,7 +1,13 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../db');
 
-class Message extends Model {}
+class Message extends Model {
+  static associate(models) {
+    Message.belongsTo(models.Conversation, { foreignKey: 'conversationId', as: 'conversation' });
+    Message.belongsTo(models.User, { foreignKey: 'senderId', as: 'sender' });
+    Message.hasMany(models.Notification, { foreignKey: 'messageId', as: 'notifications' });
+  }
+}
 
 Message.init(
   {
@@ -10,8 +16,8 @@ Message.init(
       autoIncrement: true,
       primaryKey: true,
     },
-    roomId: {
-      type: DataTypes.STRING,
+    conversationId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     senderId: {
@@ -21,6 +27,10 @@ Message.init(
     content: {
       type: DataTypes.TEXT,
       allowNull: false,
+      validate: {
+        notEmpty: true,
+        len: [1, 5000],
+      },
     },
   },
   {

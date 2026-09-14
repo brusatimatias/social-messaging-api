@@ -5,13 +5,13 @@ function initSockets(httpServer) {
   const io = new Server(httpServer);
 
   io.on('connection', (socket) => {
-    socket.on('joinRoom', (roomId) => {
-      socket.join(roomId);
+    socket.on('joinRoom', (conversationId) => {
+      socket.join(String(conversationId));
     });
 
-    socket.on('sendMessage', async ({ roomId, senderId, content }) => {
-      const message = await Service.createMessage({ roomId, senderId, content });
-      io.to(roomId).emit('newMessage', message);
+    socket.on('sendMessage', async ({ conversationId, senderId, content }) => {
+      const message = await Service.createMessage({ conversationId, senderId, content });
+      io.to(String(conversationId)).emit('newMessage', message);
     });
   });
 
