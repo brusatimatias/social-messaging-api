@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../../models/User');
+const { User } = require('../../models');
 
-router.get('/users/:id', async (req, res, next) => {
+router.get('/users/:uuid', async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.params.id, {
+    const user = await User.findOne({
+      where: { uuid: req.params.uuid },
       attributes: ['id', 'uuid', 'name', 'lastname', 'fullName'],
     });
 

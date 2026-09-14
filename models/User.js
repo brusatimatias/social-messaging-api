@@ -57,6 +57,7 @@ User.init(
     sequelize,
     modelName: 'User',
     tableName: 'Users',
+    paranoid: true,
   }
 );
 
