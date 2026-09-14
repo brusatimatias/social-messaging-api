@@ -22,6 +22,7 @@ cp .env.example .env               # completar credenciales locales
 npx sequelize-cli db:migrate       # correr migraciones (requiere Postgres levantado)
 npm run dev                        # levantar con nodemon
 npm start                          # levantar en modo normal
+npm run lint                       # ESLint
 npm test                           # correr la test suite (no requiere Postgres, todo mockeado)
 ```
 
@@ -73,3 +74,10 @@ El README describe features que **no** existen todavía en el código — no asu
 `npm test` corre sin Postgres levantado porque los tests mockean los modelos Sequelize. Para probar
 contra una base real: levantar Postgres, `NODE_ENV=test npx sequelize-cli db:migrate` contra la DB
 `social-messaging-api-test`, y escribir/correr tests de integración aparte (hoy no existen).
+
+## CI
+
+`.github/workflows/ci.yml` corre en cada push a `main` y en cada PR, con dos jobs independientes
+(`lint` y `test`), para que un fallo de lint no oculte el resultado de los tests ni viceversa.
+Ninguno de los dos requiere Postgres. Si agregás un paso nuevo (build, audit, etc.), que sea su
+propio job por la misma razón.
