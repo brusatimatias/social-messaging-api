@@ -4,6 +4,7 @@ jest.mock('../../models', () => ({
 
 const { User } = require('../../models');
 const UserService = require('../../services/UserService');
+const buildUser = require('../factories/user');
 
 describe('UserService', () => {
   afterEach(() => {
@@ -12,7 +13,7 @@ describe('UserService', () => {
 
   describe('upsertUser', () => {
     it('creates a new user when it did not exist yet', async () => {
-      const created = { id: 1, uuid: 'uuid-1', update: jest.fn() };
+      const created = { ...buildUser({ uuid: 'uuid-1' }), update: jest.fn() };
       User.findOrCreate.mockResolvedValue([created, true]);
 
       const result = await UserService.upsertUser({
@@ -31,7 +32,7 @@ describe('UserService', () => {
     });
 
     it('updates the user when it already existed', async () => {
-      const existing = { id: 1, uuid: 'uuid-1', update: jest.fn().mockResolvedValue() };
+      const existing = { ...buildUser({ uuid: 'uuid-1' }), update: jest.fn().mockResolvedValue() };
       User.findOrCreate.mockResolvedValue([existing, false]);
 
       await UserService.upsertUser({

@@ -8,6 +8,7 @@ const app = require('../../../../app');
 const UserService = require('../../../../services/UserService');
 const authHeader = require('../../../helpers/authHeader');
 const serviceAuthHeader = require('../../../helpers/serviceAuthHeader');
+const buildUser = require('../../../factories/user');
 
 describe('internal users routes', () => {
   const originalSecret = process.env.SECRET_KEY;
@@ -42,13 +43,7 @@ describe('internal users routes', () => {
     });
 
     it('upserts the user when authenticated as the service', async () => {
-      const user = {
-        id: 1,
-        uuid: 'uuid-1',
-        name: 'Ada',
-        lastname: 'Lovelace',
-        fullName: 'Ada Lovelace',
-      };
+      const user = buildUser({ uuid: 'uuid-1' });
       UserService.upsertUser.mockResolvedValue(user);
 
       const response = await request(app)

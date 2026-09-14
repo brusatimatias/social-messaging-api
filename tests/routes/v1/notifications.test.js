@@ -6,6 +6,7 @@ const request = require('supertest');
 const app = require('../../../app');
 const NotificationService = require('../../../services/NotificationService');
 const authHeader = require('../../helpers/authHeader');
+const buildNotification = require('../../factories/notification');
 
 describe('GET /api/v1/notifications', () => {
   const originalSecret = process.env.SECRET_KEY;
@@ -26,7 +27,7 @@ describe('GET /api/v1/notifications', () => {
   });
 
   it('returns the notifications for the authenticated user', async () => {
-    const notifications = [{ id: 1, title: 'New message' }];
+    const notifications = [buildNotification()];
     NotificationService.getNotificationsForUser.mockResolvedValue(notifications);
 
     const response = await request(app).get('/api/v1/notifications').set(authHeader('u1'));

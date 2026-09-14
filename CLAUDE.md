@@ -81,7 +81,11 @@ npm test                           # run the test suite (no Postgres needed, eve
   `socket.userUuid` — that hasn't been locked down yet, see "Not implemented yet".
 - `tests/` — mirrors the structure above. Tests mock models/services
   (`jest.mock('../../models', ...)`, `jest.mock('../../services/XService', ...)`) so they don't need
-  Postgres.
+  Postgres. `tests/factories/` has one `buildX(overrides)` per model (`buildUser`, `buildConversation`,
+  `buildConversationParticipant`, `buildMessage`, `buildNotification`) returning a plain object with
+  sane defaults — use them instead of inline literals for mock data (`User.findOne.mockResolvedValue`,
+  etc.) to avoid repeating the same fake record across files; pass overrides for whatever the test
+  actually asserts on (uuid, id, etc.).
 
 ## Conventions
 

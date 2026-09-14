@@ -10,6 +10,8 @@ const request = require('supertest');
 const app = require('../../../app');
 const ConversationService = require('../../../services/ConversationService');
 const authHeader = require('../../helpers/authHeader');
+const buildConversation = require('../../factories/conversation');
+const buildConversationParticipant = require('../../factories/conversationParticipant');
 
 describe('conversations routes', () => {
   const originalSecret = process.env.SECRET_KEY;
@@ -25,7 +27,7 @@ describe('conversations routes', () => {
 
   describe('POST /api/v1/conversations', () => {
     it('creates a conversation', async () => {
-      const conversation = { id: 1 };
+      const conversation = buildConversation();
       ConversationService.createConversation.mockResolvedValue(conversation);
 
       const response = await request(app)
@@ -61,7 +63,7 @@ describe('conversations routes', () => {
     });
 
     it('returns the conversations for the authenticated user', async () => {
-      const conversations = [{ id: 1 }];
+      const conversations = [buildConversation()];
       ConversationService.getConversationsForUser.mockResolvedValue(conversations);
 
       const response = await request(app)
@@ -76,7 +78,7 @@ describe('conversations routes', () => {
 
   describe('GET /api/v1/conversations/:id', () => {
     it('returns the conversation detail', async () => {
-      const conversation = { id: 1 };
+      const conversation = buildConversation();
       ConversationService.getConversationById.mockResolvedValue(conversation);
 
       const response = await request(app).get('/api/v1/conversations/1').set(authHeader());
@@ -88,7 +90,7 @@ describe('conversations routes', () => {
 
   describe('POST /api/v1/conversations/:id/participants', () => {
     it('adds a participant', async () => {
-      const participant = { id: 1 };
+      const participant = buildConversationParticipant();
       ConversationService.addParticipant.mockResolvedValue(participant);
 
       const response = await request(app)

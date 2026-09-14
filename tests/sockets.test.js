@@ -16,6 +16,9 @@ const { io: ioClient } = require('socket.io-client');
 const initSockets = require('../sockets');
 const MessageService = require('../services/MessageService');
 const { User, ConversationParticipant } = require('../models');
+const buildUser = require('./factories/user');
+const buildConversationParticipant = require('./factories/conversationParticipant');
+const buildMessage = require('./factories/message');
 
 describe('sockets', () => {
   let httpServer;
@@ -52,10 +55,10 @@ describe('sockets', () => {
 
   it('joins the room only when the user is a participant, then broadcasts new messages', (done) => {
     const token = jwt.sign({ uuid: 'user-uuid-1' }, process.env.SECRET_KEY);
-    const message = { id: 1, conversationId: 1, senderId: 1, content: 'hi there' };
+    const message = buildMessage({ content: 'hi there' });
 
-    User.findOne.mockResolvedValue({ id: 1, uuid: 'user-uuid-1' });
-    ConversationParticipant.findOne.mockResolvedValue({ conversationId: 1, userId: 1 });
+    User.findOne.mockResolvedValue(buildUser({ id: 1, uuid: 'user-uuid-1' }));
+    ConversationParticipant.findOne.mockResolvedValue(buildConversationParticipant());
     MessageService.createMessage.mockResolvedValue(message);
 
     const client = ioClient(url, { transports: ['websocket'], auth: { token } });

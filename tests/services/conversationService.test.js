@@ -17,6 +17,9 @@ const {
   User,
 } = require('../../models');
 const ConversationService = require('../../services/ConversationService');
+const buildUser = require('../factories/user');
+const buildConversation = require('../factories/conversation');
+const buildConversationParticipant = require('../factories/conversationParticipant');
 
 describe('ConversationService', () => {
   afterEach(() => {
@@ -26,11 +29,11 @@ describe('ConversationService', () => {
   describe('createConversation', () => {
     it('creates the conversation with its participants inside a transaction', async () => {
       const users = [
-        { id: 1, uuid: 'u1' },
-        { id: 2, uuid: 'u2' },
+        buildUser({ id: 1, uuid: 'u1' }),
+        buildUser({ id: 2, uuid: 'u2' }),
       ];
       User.findAll.mockResolvedValue(users);
-      const conversation = { id: 10 };
+      const conversation = buildConversation({ id: 10 });
       Conversation.create.mockResolvedValue(conversation);
 
       const result = await ConversationService.createConversation({
@@ -55,7 +58,7 @@ describe('ConversationService', () => {
     });
 
     it('throws a 422 when a participant uuid is unknown', async () => {
-      User.findAll.mockResolvedValue([{ id: 1, uuid: 'u1' }]);
+      User.findAll.mockResolvedValue([buildUser({ id: 1, uuid: 'u1' })]);
 
       await expect(
         ConversationService.createConversation({ isGroup: false, participantUuids: ['u1', 'u2'] })
@@ -65,8 +68,8 @@ describe('ConversationService', () => {
 
   describe('getConversationsForUser', () => {
     it('returns conversations where the user participates', async () => {
-      User.findOne.mockResolvedValue({ id: 1, uuid: 'u1' });
-      const conversations = [{ id: 1 }];
+      User.findOne.mockResolvedValue(buildUser({ id: 1, uuid: 'u1' }));
+      const conversations = [buildConversation()];
       Conversation.findAll.mockResolvedValue(conversations);
 
       const result = await ConversationService.getConversationsForUser('u1');
@@ -95,7 +98,7 @@ describe('ConversationService', () => {
 
   describe('getConversationById', () => {
     it('returns the conversation', async () => {
-      const conversation = { id: 1 };
+      const conversation = buildConversation();
       Conversation.findByPk.mockResolvedValue(conversation);
 
       const result = await ConversationService.getConversationById(1);
@@ -112,18 +115,18 @@ describe('ConversationService', () => {
 
   describe('addParticipant', () => {
     it('throws a 409 when the user is already a participant', async () => {
-      Conversation.findByPk.mockResolvedValue({ id: 1 });
-      User.findOne.mockResolvedValue({ id: 2, uuid: 'u2' });
-      ConversationParticipant.findOne.mockResolvedValue({ id: 5 });
+      Conversation.findByPk.mockResolvedValue(buildConversation());
+      User.findOne.mockResolvedValue(buildUser({ id: 2, uuid: 'u2' }));
+      ConversationParticipant.findOne.mockResolvedValue(buildConversationParticipant({ id: 5 }));
 
       await expect(ConversationService.addParticipant(1, 'u2')).rejects.toMatchObject({ status: 409 });
     });
 
     it('creates the participant when it does not exist yet', async () => {
-      Conversation.findByPk.mockResolvedValue({ id: 1 });
-      User.findOne.mockResolvedValue({ id: 2, uuid: 'u2' });
+      Conversation.findByPk.mockResolvedValue(buildConversation());
+      User.findOne.mockResolvedValue(buildUser({ id: 2, uuid: 'u2' }));
       ConversationParticipant.findOne.mockResolvedValue(null);
-      const participant = { id: 5 };
+      const participant = buildConversationParticipant({ id: 5 });
       ConversationParticipant.create.mockResolvedValue(participant);
 
       const result = await ConversationService.addParticipant(1, 'u2');
@@ -135,7 +138,7 @@ describe('ConversationService', () => {
 
   describe('removeParticipant', () => {
     it('throws a 404 when the participant does not exist', async () => {
-      User.findOne.mockResolvedValue({ id: 2, uuid: 'u2' });
+      User.findOne.mockResolvedValue(buildUser({ id: 2, uuid: 'u2' }));
       ConversationParticipant.destroy.mockResolvedValue(0);
 
       await expect(ConversationService.removeParticipant(1, 'u2')).rejects.toMatchObject({

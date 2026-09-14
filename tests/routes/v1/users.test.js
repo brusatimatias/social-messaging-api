@@ -6,6 +6,7 @@ const request = require('supertest');
 const app = require('../../../app');
 const { User } = require('../../../models');
 const authHeader = require('../../helpers/authHeader');
+const buildUser = require('../../factories/user');
 
 describe('GET /api/v1/users/:uuid', () => {
   const originalSecret = process.env.SECRET_KEY;
@@ -28,26 +29,13 @@ describe('GET /api/v1/users/:uuid', () => {
   });
 
   it('returns the user when it exists', async () => {
-    User.findOne.mockResolvedValue({
-      id: 1,
-      uuid,
-      name: 'Ada',
-      lastname: 'Lovelace',
-      fullName: 'Ada Lovelace',
-    });
+    const user = buildUser({ uuid });
+    User.findOne.mockResolvedValue(user);
 
     const response = await request(app).get(`/api/v1/users/${uuid}`).set(authHeader());
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      data: {
-        id: 1,
-        uuid,
-        name: 'Ada',
-        lastname: 'Lovelace',
-        fullName: 'Ada Lovelace',
-      },
-    });
+    expect(response.body).toEqual({ data: user });
     expect(User.findOne).toHaveBeenCalledWith({
       where: { uuid },
       attributes: ['id', 'uuid', 'name', 'lastname', 'fullName'],

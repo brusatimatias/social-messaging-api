@@ -7,6 +7,7 @@ const request = require('supertest');
 const app = require('../../../app');
 const MessageService = require('../../../services/MessageService');
 const authHeader = require('../../helpers/authHeader');
+const buildMessage = require('../../factories/message');
 
 describe('messages routes', () => {
   const originalSecret = process.env.SECRET_KEY;
@@ -29,8 +30,8 @@ describe('messages routes', () => {
 
     it('returns the messages for the conversation', async () => {
       const messages = [
-        { id: 1, conversationId: 1, senderId: 1, content: 'hi' },
-        { id: 2, conversationId: 1, senderId: 2, content: 'hello' },
+        buildMessage({ id: 1, senderId: 1, content: 'hi' }),
+        buildMessage({ id: 2, senderId: 2, content: 'hello' }),
       ];
       MessageService.getMessagesByConversation.mockResolvedValue(messages);
 
@@ -46,7 +47,7 @@ describe('messages routes', () => {
 
   describe('POST /api/v1/conversations/:conversationId/messages', () => {
     it('creates a message and returns it', async () => {
-      const created = { id: 1, conversationId: 1, senderId: 1, content: 'hi' };
+      const created = buildMessage();
       MessageService.createMessage.mockResolvedValue(created);
 
       const response = await request(app)
