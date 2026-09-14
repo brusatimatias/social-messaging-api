@@ -14,8 +14,10 @@ describe('GET /api/v1/users/:id', () => {
   it('returns the user when it exists', async () => {
     User.findByPk.mockResolvedValue({
       id: 1,
-      username: 'exampleUser',
-      email: 'user@example.com',
+      uuid: '2f1e2b0a-2b3a-4a7a-9a3b-0f1a2b3c4d5e',
+      name: 'Ada',
+      lastname: 'Lovelace',
+      fullName: 'Ada Lovelace',
     });
 
     const response = await request(app).get('/api/v1/users/1');
@@ -23,11 +25,13 @@ describe('GET /api/v1/users/:id', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
       id: 1,
-      username: 'exampleUser',
-      email: 'user@example.com',
+      uuid: '2f1e2b0a-2b3a-4a7a-9a3b-0f1a2b3c4d5e',
+      name: 'Ada',
+      lastname: 'Lovelace',
+      fullName: 'Ada Lovelace',
     });
     expect(User.findByPk).toHaveBeenCalledWith('1', {
-      attributes: ['id', 'username', 'email'],
+      attributes: ['id', 'uuid', 'name', 'lastname', 'fullName'],
     });
   });
 

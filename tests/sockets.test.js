@@ -1,6 +1,6 @@
 jest.mock('../services/Service', () => ({
   createMessage: jest.fn(),
-  getMessagesByRoom: jest.fn(),
+  getMessagesByConversation: jest.fn(),
 }));
 
 const http = require('http');
@@ -29,21 +29,21 @@ describe('sockets', () => {
     jest.clearAllMocks();
   });
 
-  it('broadcasts a persisted message to everyone in the room', (done) => {
-    const message = { id: 1, roomId: 'room-1', senderId: 1, content: 'hi there' };
+  it('broadcasts a persisted message to everyone in the conversation', (done) => {
+    const message = { id: 1, conversationId: 1, senderId: 1, content: 'hi there' };
     Service.createMessage.mockResolvedValue(message);
 
     const client = ioClient(`http://localhost:${port}`, { transports: ['websocket'] });
 
     client.on('connect', () => {
-      client.emit('joinRoom', 'room-1');
-      client.emit('sendMessage', { roomId: 'room-1', senderId: 1, content: 'hi there' });
+      client.emit('joinRoom', 1);
+      client.emit('sendMessage', { conversationId: 1, senderId: 1, content: 'hi there' });
     });
 
     client.on('newMessage', (received) => {
       expect(received).toEqual(message);
       expect(Service.createMessage).toHaveBeenCalledWith({
-        roomId: 'room-1',
+        conversationId: 1,
         senderId: 1,
         content: 'hi there',
       });

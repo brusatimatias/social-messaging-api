@@ -13,25 +13,25 @@ describe('Service', () => {
 
   describe('createMessage', () => {
     it('persists a message via the Message model', async () => {
-      const created = { id: 1, roomId: 'room-1', senderId: 1, content: 'hi' };
+      const created = { id: 1, conversationId: 1, senderId: 1, content: 'hi' };
       Message.create.mockResolvedValue(created);
 
-      const result = await Service.createMessage({ roomId: 'room-1', senderId: 1, content: 'hi' });
+      const result = await Service.createMessage({ conversationId: 1, senderId: 1, content: 'hi' });
 
-      expect(Message.create).toHaveBeenCalledWith({ roomId: 'room-1', senderId: 1, content: 'hi' });
+      expect(Message.create).toHaveBeenCalledWith({ conversationId: 1, senderId: 1, content: 'hi' });
       expect(result).toBe(created);
     });
   });
 
-  describe('getMessagesByRoom', () => {
+  describe('getMessagesByConversation', () => {
     it('fetches messages ordered by creation date', async () => {
       const messages = [{ id: 1 }, { id: 2 }];
       Message.findAll.mockResolvedValue(messages);
 
-      const result = await Service.getMessagesByRoom('room-1');
+      const result = await Service.getMessagesByConversation(1);
 
       expect(Message.findAll).toHaveBeenCalledWith({
-        where: { roomId: 'room-1' },
+        where: { conversationId: 1 },
         order: [['createdAt', 'ASC']],
       });
       expect(result).toBe(messages);
