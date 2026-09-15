@@ -98,7 +98,12 @@ Follow these steps to set up and run the Social Messaging API:
    POSTGRES_PASSWORD=yourpassword
    DB_HOST=localhost
    SECRET_KEY=yoursecretkey
+   CORS_ORIGINS=http://localhost:8000
    ```
+
+   `CORS_ORIGINS` is a comma-separated whitelist of client origins allowed to call the API
+   (REST and the socket.io handshake both use it). Leave it empty to block every cross-origin
+   caller — there's no `*` fallback.
 
 4. **Run Sequelize migrations:**
 

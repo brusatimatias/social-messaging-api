@@ -2,9 +2,10 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const MessageService = require('../services/MessageService');
 const { User, ConversationParticipant } = require('../models');
+const getCorsOrigins = require('../utils/corsOrigins');
 
 function initSockets(httpServer) {
-  const io = new Server(httpServer);
+  const io = new Server(httpServer, { cors: { origin: getCorsOrigins() } });
 
   io.use((socket, next) => {
     const token = socket.handshake.auth && socket.handshake.auth.token;

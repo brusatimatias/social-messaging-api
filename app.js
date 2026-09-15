@@ -1,14 +1,17 @@
 require('dotenv').config();
 
 var express = require('express');
+var cors = require('cors');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
 var v1Router = require('./routes/v1');
+var getCorsOrigins = require('./utils/corsOrigins');
 
 var app = express();
 
 app.use(logger('dev'));
+app.use(cors({ origin: getCorsOrigins() }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
