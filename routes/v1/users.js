@@ -1,18 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../../models/User');
+const { User } = require('../../models');
+const HttpError = require('../../utils/HttpError');
+const { sendData } = require('../../utils/apiResponse');
 
-router.get('/users/:id', async (req, res, next) => {
+router.get('/users/:uuid', async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.params.id, {
-      attributes: ['id', 'username', 'email'],
+    const user = await User.findOne({
+      where: { uuid: req.params.uuid },
+      attributes: ['id', 'uuid', 'name', 'lastname', 'fullName'],
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      throw new HttpError(404, 'User not found');
     }
 
-    res.json(user);
+    sendData(res, user);
   } catch (error) {
     next(error);
   }

@@ -8,9 +8,14 @@ module.exports = {
         autoIncrement: true,
         primaryKey: true,
       },
-      roomId: {
-        type: Sequelize.STRING,
+      conversationId: {
+        type: Sequelize.INTEGER,
         allowNull: false,
+        references: {
+          model: 'Conversations',
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
       },
       senderId: {
         type: Sequelize.INTEGER,
@@ -33,7 +38,7 @@ module.exports = {
         allowNull: false,
       },
     });
-    await queryInterface.addIndex('Messages', ['roomId']);
+    await queryInterface.addIndex('Messages', ['conversationId']);
   },
 
   down: async (queryInterface) => {

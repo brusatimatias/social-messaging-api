@@ -10,6 +10,7 @@
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Usage](#usage)
+- [API Testing (Postman)](#api-testing-postman)
 
 ## Description
 
@@ -130,6 +131,47 @@ connect, emit `joinRoom` with a room id to join a group chat, and emit `sendMess
 `{ roomId, senderId, content }` to send a message — the server persists it and broadcasts a
 `newMessage` event to everyone in that room. Users can also use RESTful endpoints to query
 conversations and messages for historical data access (e.g. `GET /api/v1/conversations/:roomId/messages`).
+
+## API Testing (Postman)
+
+A ready-to-import Postman collection covering every `/api/v1` endpoint lives at
+[`doc/social-messaging-api.postman_collection.json`](doc/social-messaging-api.postman_collection.json).
+
+**Import:** Postman → Import → select the file (or drag it in).
+
+**Collection variables** (Collection → Variables tab):
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `base_url` | `http://localhost:3001` | Matches the default `PORT` in `.env.example` — adjust if your `.env` uses a different one. |
+| `userToken` | *(empty)* | JWT signed with `SECRET_KEY`, payload `{ uuid: '<user-uuid>' }`. Used by every request except the `Internal` folder. |
+| `serviceToken` | *(empty)* | JWT signed with `SECRET_KEY`, payload `{ service: 'social-api' }`. Used only by the `Internal (Social API sync)` requests. |
+| `userUuid` | `user-uuid-1` | Path param for user-scoped requests (`GET /users/:uuid`, internal sync). |
+| `conversationId` | `1` | Path param for conversation/message requests. |
+
+This API doesn't issue tokens itself — it only verifies JWTs signed with the same `SECRET_KEY` as
+whoever issues them (see "Authentication" in `CLAUDE.md`). To generate a token for local testing,
+run something like:
+
+```bash
+node -e "console.log(require('jsonwebtoken').sign({ uuid: 'user-uuid-1' }, 'yoursecretkey'))"
+node -e "console.log(require('jsonwebtoken').sign({ service: 'social-api' }, 'yoursecretkey'))"
+```
+
+using the same value as `SECRET_KEY` in your `.env`, then paste the output into `userToken` /
+`serviceToken`.
+
+**Folders:**
+
+- `Users` — `GET /api/v1/users/:uuid`
+- `Conversations` — list/create conversations, add/remove participants
+- `Messages` — list messages, send one via REST (fallback to the `sendMessage` socket event)
+- `Notifications` — list notifications for the authenticated user
+- `Internal (Social API sync)` — `PUT`/`DELETE /api/v1/internal/users/:uuid`, the endpoints the
+  Social API calls on user create/update/delete (requires `serviceToken`, not `userToken`)
+
+Every successful response is wrapped as `{ "data": ... }` and every error as
+`{ "error": { "message": "..." } }` (see `utils/apiResponse.js` and the error handler in `app.js`).
 
 If you're a developer interested in using our API or have any questions, please don't hesitate to get in touch:
 
