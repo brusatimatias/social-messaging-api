@@ -26,6 +26,9 @@ router.post('/conversations/:conversationId/messages', async (req, res, next) =>
       senderId,
       content,
     });
+
+    req.app.get('io').to(String(req.params.conversationId)).emit('newMessage', message);
+
     sendData(res, message, 201);
   } catch (error) {
     next(error);
