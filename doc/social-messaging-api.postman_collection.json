@@ -1,0 +1,211 @@
+{
+  "info": {
+    "name": "Social Messaging API",
+    "description": "REST endpoints for the Social Messaging API (Express + Sequelize/PostgreSQL). See CLAUDE.md and README.md in the repo root for context.\n\nAuth model: every /api/v1 request needs `Authorization: Bearer <jwt>` signed with the shared SECRET_KEY.\n- User calls: JWT payload has a `uuid` claim -> set the `userToken` collection variable.\n- Internal sync calls (/api/v1/internal/*): JWT payload has a `service` claim instead -> set the `serviceToken` collection variable.\n\nAll successful responses are wrapped as `{ \"data\": ... }`; all errors as `{ \"error\": { \"message\": \"...\" } }` (see utils/apiResponse.js and app.js's error handler).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3001", "type": "string" },
+    { "key": "userToken", "value": "", "type": "string", "description": "JWT signed with SECRET_KEY, payload { uuid: '<user-uuid>' }" },
+    { "key": "serviceToken", "value": "", "type": "string", "description": "JWT signed with SECRET_KEY, payload { service: 'social-api' }" },
+    { "key": "userUuid", "value": "user-uuid-1", "type": "string" },
+    { "key": "conversationId", "value": "1", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get user by uuid",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{userUuid}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{userUuid}}"]
+            },
+            "description": "Returns { id, uuid, name, lastname, fullName } for the given uuid. 404 if not found."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Conversations",
+      "item": [
+        {
+          "name": "List my conversations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/conversations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "conversations"]
+            },
+            "description": "Conversations for req.userUuid (derived from the Bearer token)."
+          }
+        },
+        {
+          "name": "Create conversation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isGroup\": false,\n  \"name\": null,\n  \"participantUuids\": [\"user-uuid-1\", \"user-uuid-2\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/conversations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "conversations"]
+            },
+            "description": "participantUuids needs at least 2 uuids. No dedupe of repeated 1:1 conversations (known simplification)."
+          }
+        },
+        {
+          "name": "Get conversation by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/conversations/{{conversationId}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "conversations", "{{conversationId}}"]
+            }
+          }
+        },
+        {
+          "name": "Add participant",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userUuid\": \"user-uuid-3\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/conversations/{{conversationId}}/participants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "conversations", "{{conversationId}}", "participants"]
+            },
+            "description": "409 if the user is already a participant."
+          }
+        },
+        {
+          "name": "Remove participant",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/conversations/{{conversationId}}/participants/{{userUuid}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "conversations", "{{conversationId}}", "participants", "{{userUuid}}"]
+            },
+            "description": "204 No Content on success."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "List messages in a conversation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/conversations/{{conversationId}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "conversations", "{{conversationId}}", "messages"]
+            },
+            "description": "Ordered by createdAt ASC."
+          }
+        },
+        {
+          "name": "Send message (REST fallback)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senderId\": 1,\n  \"content\": \"hi there\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/conversations/{{conversationId}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "conversations", "{{conversationId}}", "messages"]
+            },
+            "description": "Same trust level as the 'sendMessage' socket event today: senderId is taken from the body as-is, not derived from the token (see 'Not implemented yet' in CLAUDE.md). Prefer the socket event for real-time delivery; this is the REST fallback."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List my notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications"]
+            },
+            "description": "Notifications for req.userUuid. No endpoint yet to mark as read."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Internal (Social API sync)",
+      "item": [
+        {
+          "name": "Upsert user",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{serviceToken}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ada\",\n  \"lastname\": \"Lovelace\",\n  \"fullName\": \"Ada Lovelace\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/internal/users/{{userUuid}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "internal", "users", "{{userUuid}}"]
+            },
+            "description": "Idempotent upsert, called by the Social API on user create/update. Requires a service token (JWT payload { service: 'social-api' }) - a user token gets a 403 from requireService."
+          }
+        },
+        {
+          "name": "Soft-delete user",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{serviceToken}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/internal/users/{{userUuid}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "internal", "users", "{{userUuid}}"]
+            },
+            "description": "204 No Content on success. User is soft-deleted (paranoid: true), doesn't break the Message.senderId FK."
+          }
+        }
+      ]
+    }
+  ]
+}
