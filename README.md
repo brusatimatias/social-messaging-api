@@ -34,7 +34,7 @@ These combined features provide users with a complete social messaging experienc
 
 This diagram outlines the system's architecture, illustrating how clients interact with the Social Messaging API:
 
-![System Architecture](doc/Social%20App-architecture.drawio.png)
+![System Architecture](doc/Social%20App-architecture.drawio%20v2.png)
 
 The architecture diagram provides an overview of the communication flow between clients and the server. It highlights the essential components that ensure a smooth interaction experience
 
