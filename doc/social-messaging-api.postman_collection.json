@@ -8,7 +8,7 @@
     { "key": "base_url", "value": "http://localhost:3001", "type": "string" },
     { "key": "userToken", "value": "", "type": "string", "description": "JWT signed with SECRET_KEY, payload { uuid: '<user-uuid>' }" },
     { "key": "serviceToken", "value": "", "type": "string", "description": "JWT signed with SECRET_KEY, payload { service: 'social-api' }" },
-    { "key": "userUuid", "value": "user-uuid-1", "type": "string" },
+    { "key": "userUuid", "value": "3f6c1e2a-8b4d-4c9e-9a7f-2d5e6b1c0a94", "type": "string" },
     { "key": "conversationId", "value": "1", "type": "string" }
   ],
   "auth": {
@@ -57,7 +57,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"isGroup\": false,\n  \"name\": null,\n  \"participantUuids\": [\"user-uuid-1\", \"user-uuid-2\"]\n}"
+              "raw": "{\n  \"isGroup\": false,\n  \"name\": null,\n  \"participantUuids\": [\"3f6c1e2a-8b4d-4c9e-9a7f-2d5e6b1c0a94\", \"7a1d9e4b-2c3f-4b8a-8e6d-5f0c9b2a7d13\"]\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/conversations",
@@ -86,7 +86,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userUuid\": \"user-uuid-3\"\n}"
+              "raw": "{\n  \"userUuid\": \"c4e8b2f1-6a9d-4e3c-b1f7-8d2a5c9e0b6f\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/conversations/{{conversationId}}/participants",
