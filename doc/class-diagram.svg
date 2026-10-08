@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1020" height="580" viewBox="0 0 1020 580" font-family="Helvetica, Arial, sans-serif">
+  <!-- Class diagram for models/. Keep in sync with models/*.js and migrations/. -->
+  <style>
+    .box { fill: #ffffff; stroke: #333333; stroke-width: 1.5; }
+    .head { fill: #eef2f7; stroke: #333333; stroke-width: 1.5; }
+    .title { font-size: 15px; font-weight: bold; font-style: italic; fill: #111111; }
+    .field { font-family: Menlo, Consolas, monospace; font-size: 12px; fill: #222222; }
+    .note { font-family: Menlo, Consolas, monospace; font-size: 11px; fill: #777777; }
+    .rel { stroke: #333333; stroke-width: 1.5; fill: none; }
+    .mult { font-size: 13px; fill: #111111; }
+    .label { font-size: 12px; font-style: italic; fill: #555555; }
+    .legend { font-size: 12px; fill: #555555; }
+  </style>
+  <rect width="1020" height="580" fill="#ffffff"/>
+
+  <!-- User -->
+  <rect class="box" x="40" y="80" width="260" height="160"/>
+  <rect class="head" x="40" y="80" width="260" height="30"/>
+  <text class="title" x="170" y="100" text-anchor="middle">User</text>
+  <text class="field" x="50" y="130">id: INTEGER PK</text>
+  <text class="field" x="50" y="150">uuid: UUID v4, unique</text>
+  <text class="field" x="50" y="170">name: STRING</text>
+  <text class="field" x="50" y="190">lastname: STRING</text>
+  <text class="field" x="50" y="210">fullName: STRING</text>
+  <text class="field" x="50" y="230">deletedAt: DATE <tspan class="note">(paranoid)</tspan></text>
+
+  <!-- Notification -->
+  <rect class="box" x="380" y="80" width="260" height="160"/>
+  <rect class="head" x="380" y="80" width="260" height="30"/>
+  <text class="title" x="510" y="100" text-anchor="middle">Notification</text>
+  <text class="field" x="390" y="130">id: INTEGER PK</text>
+  <text class="field" x="390" y="150">title: STRING(1..255)</text>
+  <text class="field" x="390" y="170">content: TEXT</text>
+  <text class="field" x="390" y="190">userId: FK → User</text>
+  <text class="field" x="390" y="210">messageId: FK → Message</text>
+  <text class="field" x="390" y="230">isRead: BOOLEAN = false</text>
+
+  <!-- Message -->
+  <rect class="box" x="720" y="80" width="260" height="120"/>
+  <rect class="head" x="720" y="80" width="260" height="30"/>
+  <text class="title" x="850" y="100" text-anchor="middle">Message</text>
+  <text class="field" x="730" y="130">id: INTEGER PK</text>
+  <text class="field" x="730" y="150">conversationId: FK</text>
+  <text class="field" x="730" y="170">senderId: FK <tspan class="note">(no onDelete)</tspan></text>
+  <text class="field" x="730" y="190">content: TEXT(1..5000)</text>
+
+  <!-- ConversationParticipant -->
+  <rect class="box" x="40" y="360" width="260" height="120"/>
+  <rect class="head" x="40" y="360" width="260" height="30"/>
+  <text class="title" x="170" y="380" text-anchor="middle">ConversationParticipant</text>
+  <text class="field" x="50" y="410">id: INTEGER PK</text>
+  <text class="field" x="50" y="430">conversationId: FK</text>
+  <text class="field" x="50" y="450">userId: FK</text>
+  <text class="note" x="50" y="470">unique (conversationId, userId)</text>
+
+  <!-- Conversation -->
+  <rect class="box" x="720" y="360" width="260" height="100"/>
+  <rect class="head" x="720" y="360" width="260" height="30"/>
+  <text class="title" x="850" y="380" text-anchor="middle">Conversation</text>
+  <text class="field" x="730" y="410">id: INTEGER PK</text>
+  <text class="field" x="730" y="430">name: STRING, nullable</text>
+  <text class="field" x="730" y="450">isGroup: BOOLEAN = false</text>
+
+  <!-- User 1 — * Message (sender) -->
+  <path class="rel" d="M170 80 V45 H850 V80"/>
+  <text class="mult" x="178" y="70">1</text>
+  <text class="mult" x="858" y="70">*</text>
+  <text class="label" x="510" y="38" text-anchor="middle">sender (senderId)</text>
+
+  <!-- User 1 — * Notification (recipient) -->
+  <path class="rel" d="M300 160 H380"/>
+  <text class="mult" x="306" y="154">1</text>
+  <text class="mult" x="368" y="154">*</text>
+  <text class="label" x="340" y="178" text-anchor="middle">recipient</text>
+
+  <!-- Message 1 — * Notification (source) -->
+  <path class="rel" d="M720 140 H640"/>
+  <text class="mult" x="708" y="134">1</text>
+  <text class="mult" x="646" y="134">*</text>
+  <text class="label" x="680" y="158" text-anchor="middle">source</text>
+
+  <!-- User 1 — * ConversationParticipant -->
+  <path class="rel" d="M170 240 V360"/>
+  <text class="mult" x="178" y="258">1</text>
+  <text class="mult" x="178" y="352">*</text>
+  <text class="label" x="178" y="305">participations</text>
+
+  <!-- Conversation 1 — * ConversationParticipant -->
+  <path class="rel" d="M720 410 H300"/>
+  <text class="mult" x="708" y="403">1</text>
+  <text class="mult" x="306" y="403">*</text>
+  <text class="label" x="510" y="403" text-anchor="middle">participants</text>
+
+  <!-- Conversation 1 — * Message -->
+  <path class="rel" d="M850 200 V360"/>
+  <text class="mult" x="858" y="218">*</text>
+  <text class="mult" x="858" y="352">1</text>
+  <text class="label" x="858" y="285">messages</text>
+
+  <!-- Legend -->
+  <text class="legend" x="40" y="525">User ⟷ Conversation is many-to-many through ConversationParticipant (belongsToMany: members / conversations).</text>
+  <text class="legend" x="40" y="545">Every table also has createdAt / updatedAt. User is soft-deleted (paranoid), so Message.senderId never dangles.</text>
+</svg>

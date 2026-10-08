@@ -9,64 +9,72 @@
 - [Technologies Used](#technologies-used)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [Usage](#usage)
+- [Authentication](#authentication)
+- [REST Endpoints](#rest-endpoints)
+- [Real-Time Messaging (socket.io)](#real-time-messaging-socketio)
 - [API Testing (Postman)](#api-testing-postman)
+- [Development](#development)
 
 ## Description
 
-La API de Social Messaging es una aplicación basada en Node.js diseñada para permitir la mensajería en tiempo real mediante el protocolo WebSocket. Esta API facilita la comunicación instantánea, chats grupales y notificaciones fluidas entre los usuarios. Además, ofrece la capacidad de consultar conversaciones y otros detalles a través de una API REST para una experiencia de usuario completa.
+The Social Messaging API is a Node.js service for real-time messaging over WebSockets (socket.io).
+It handles 1:1 and group conversations, messages and notifications, and exposes a REST API to
+query conversation history.
 
-**Features:**
+It's the "Messaging API" half of a two-service system: user identity, profiles and login live in
+a separate **Social API** (Ruby on Rails). This service never issues tokens or stores passwords —
+it only verifies JWTs, and keeps a minimal local copy of each user (`uuid`, `name`, `lastname`,
+`fullName`) that the Social API keeps in sync.
 
-- **Real-Time Messaging:** Users can send and receive messages in real-time, creating a seamless and interactive chat experience.
+## Features
 
-- **Group Chats:** Users have the ability to create and participate in group chats with multiple participants, facilitating team communication.
-
-- **Notifications:** The API supports sending notifications to users about new messages and important updates, keeping them informed at all times.
-
-- **User Authentication:** User authentication is performed securely, ensuring that only authorized users can access messaging features and maintain the privacy of their conversations.
-
-- **Conversation Query:** In addition to real-time messaging, the API allows users to query their previous conversations and access historical information through a REST API.
-
-These combined features provide users with a complete social messaging experience, from real-time communication to the ability to access past conversations and stay informed about important notifications.
+- **Real-Time Messaging:** clients join a conversation's room and receive `newMessage` events as
+  soon as anyone in it sends a message.
+- **1:1 and Group Conversations:** conversations can have any number of participants, who can be
+  added or removed later.
+- **Notifications:** every message generates a persisted notification for each other participant,
+  readable through the REST API.
+- **JWT Verification:** every REST request and socket connection needs a JWT issued by the Social
+  API.
+- **Conversation History:** list your conversations and their messages through the REST API.
 
 ## System Architecture
 
-This diagram outlines the system's architecture, illustrating how clients interact with the Social Messaging API:
+How the client, this API and the Social API talk to each other:
 
-![System Architecture](doc/Social%20App-architecture.drawio%20v2.png)
+![System Architecture](doc/architecture.svg)
 
-The architecture diagram provides an overview of the communication flow between clients and the server. It highlights the essential components that ensure a smooth interaction experience
+Previous versions are kept as a record of how the design evolved:
+[v1](doc/Social%20App-architecture.drawio.png) and
+[v2](doc/Social%20App-architecture.drawio%20v2.png).
 
 ## Class Diagram
 
-Here is the class diagram illustrating models and their relationships:
+Models and their relationships (see `models/`):
 
-![Class Diagram](doc//Social%20App-messaging-api.drawio.png)
+![Class Diagram](doc/class-diagram.svg)
+
+The [original class diagram](doc/Social%20App-messaging-api.drawio.png) is kept for history.
 
 ## Technologies Used
 
-This API leverages various technologies and tools, including:
-
-- Node.js 16.19.1
-- Express.js for handling HTTP requests.
-- PostgreSQL as the database for storing message history and user data.
-- pg and pg-hstore for PostgreSQL database interaction.
-- Sequelize as the ORM (Object-Relational Mapping) for database operations.
-- socket.io for real-time WebSocket messaging.
-- Jest and Supertest for the test suite.
+- Node.js (>= 16.19.1; CI runs on Node 20)
+- Express for the HTTP layer
+- PostgreSQL, with `pg` / `pg-hstore` as drivers
+- Sequelize as the ORM, `sequelize-cli` for migrations
+- socket.io for real-time messaging
+- jsonwebtoken to verify JWTs
+- Jest, Supertest and socket.io-client for the test suite; ESLint for linting
 
 ## Prerequisites
 
-Before getting started with this Social Messaging API, ensure you have the following prerequisites:
-
-- Node.js 16.19.1 or a compatible version installed on your system.
-- PostgreSQL database server set up and configured for message storage.
-- ...
+- Node.js 16.19.1 or newer, and npm.
+- A running PostgreSQL server, with a user allowed to create databases (or the databases below
+  created by hand).
+- The `SECRET_KEY` shared with the Social API, or any value of your choosing for local
+  development (you'll sign your own test tokens with it, see [Authentication](#authentication)).
 
 ## Installation
-
-Follow these steps to set up and run the Social Messaging API:
 
 1. **Clone the repository:**
 
@@ -75,13 +83,11 @@ Follow these steps to set up and run the Social Messaging API:
    cd social-messaging-api
    ```
 
-2. **Install the required packages:**
+2. **Install the dependencies:**
 
    ```bash
    npm install
    ```
-
-   This command installs packages used including Express, Sequelize, and the PostgreSQL drivers.
 
 3. **Configure environment variables:**
 
@@ -101,41 +107,98 @@ Follow these steps to set up and run the Social Messaging API:
    CORS_ORIGINS=http://localhost:8000
    ```
 
-   `CORS_ORIGINS` is a comma-separated whitelist of client origins allowed to call the API
-   (REST and the socket.io handshake both use it). Leave it empty to block every cross-origin
-   caller — there's no `*` fallback.
+   - `SECRET_KEY` signs and verifies every JWT (user and service tokens alike). It must match the
+     one the Social API uses.
+   - `CORS_ORIGINS` is a comma-separated whitelist of client origins allowed to call the API
+     (REST and the socket.io handshake both use it). Leave it empty to block every cross-origin
+     caller — there's no `*` fallback.
 
-4. **Run Sequelize migrations:**
+4. **Create the database and run the migrations:**
 
    ```bash
+   npx sequelize-cli db:create
    npx sequelize-cli db:migrate
    ```
 
-   This command will create the necessary database tables based on your Sequelize models.
+   The database name depends on `NODE_ENV` (see `config/config.js`):
+   `social-messaging-api-development`, `social-messaging-api-test` or
+   `social-messaging-api-production`.
 
-5. **Start the Social Messaging API:**
-
-   ```bash
-   npm start
-   ```
-
-   The API should now be running locally and accessible at `http://localhost:3001`. Use `npm run dev` instead to start it with `nodemon` for local development.
-
-6. **Run the test suite:**
+5. **Start the API:**
 
    ```bash
-   npm test
+   npm start      # or `npm run dev` to restart on changes with nodemon
    ```
 
-   The tests mock the Sequelize models, so they run without a live PostgreSQL connection.
+   The API listens on `http://localhost:3001` (or whatever `PORT` you set).
 
-## Usage
+## Authentication
 
-The Social Messaging API enables real-time messaging via WebSocket connections (socket.io). Clients
-connect, emit `joinRoom` with a room id to join a group chat, and emit `sendMessage` with
-`{ roomId, senderId, content }` to send a message — the server persists it and broadcasts a
-`newMessage` event to everyone in that room. Users can also use RESTful endpoints to query
-conversations and messages for historical data access (e.g. `GET /api/v1/conversations/:roomId/messages`).
+Every request under `/api/v1` and every socket connection needs a JWT signed (HS256) with
+`SECRET_KEY`. There are two kinds of token, told apart by their payload:
+
+| Caller | Payload | Can use |
+| --- | --- | --- |
+| End user (issued by the Social API at login) | `{ "uuid": "<user uuid>" }` | All of `/api/v1` except `/internal`, and sockets |
+| Social API acting on its own behalf | `{ "service": "social-api" }` | Only `/api/v1/internal/*` |
+
+A user token on an `/internal` route gets a `403`; a missing or invalid token gets a `401`.
+User uuids must be valid UUID v4 values.
+
+To generate tokens for local testing, use the same value as `SECRET_KEY` in your `.env`:
+
+```bash
+node -e "console.log(require('jsonwebtoken').sign({ uuid: '3f6c1e2a-8b4d-4c9e-9a7f-2d5e6b1c0a94' }, 'yoursecretkey'))"
+node -e "console.log(require('jsonwebtoken').sign({ service: 'social-api' }, 'yoursecretkey'))"
+```
+
+The user must also exist locally. Create it through the internal sync endpoint
+(`PUT /api/v1/internal/users/:uuid` with the service token) before using the user token.
+
+## REST Endpoints
+
+All routes live under `/api/v1` and need `Authorization: Bearer <jwt>`. Successful responses are
+wrapped as `{ "data": ... }`, errors as `{ "error": { "message": "..." } }`. A malformed id or uuid
+in the path or body returns `400`.
+
+| Method | Path | Body | Success | Errors |
+| --- | --- | --- | --- | --- |
+| `GET` | `/users/:uuid` | — | `200` user (`id`, `uuid`, `name`, `lastname`, `fullName`) | `404` user |
+| `GET` | `/conversations` | — | `200` conversations of the authenticated user | `404` user not synced |
+| `POST` | `/conversations` | `{ isGroup?, name?, participantUuids }` | `201` conversation | `400` fewer than 2 uuids, `422` unknown uuid(s) |
+| `GET` | `/conversations/:id` | — | `200` conversation | `404` conversation |
+| `POST` | `/conversations/:id/participants` | `{ userUuid }` | `201` participant | `400` missing `userUuid`, `404` conversation/user, `409` already a participant |
+| `DELETE` | `/conversations/:id/participants/:userUuid` | — | `204` | `404` user/participant |
+| `GET` | `/conversations/:conversationId/messages` | — | `200` messages of the conversation | — |
+| `POST` | `/conversations/:conversationId/messages` | `{ senderId, content }` | `201` message, also broadcast as `newMessage` | `400` missing field |
+| `GET` | `/notifications` | — | `200` notifications of the authenticated user | `404` user not synced |
+| `PUT` | `/internal/users/:uuid` | `{ name, lastname, fullName }` | `200` user (idempotent upsert) | `400` missing field, `403` user token |
+| `DELETE` | `/internal/users/:uuid` | — | `204` (soft-delete) | `404` user, `403` user token |
+
+`senderId` is the local numeric user id (`User.id`), not the uuid.
+
+## Real-Time Messaging (socket.io)
+
+Connect to the same host and port as the REST API, passing a **user** token in the handshake
+(service tokens are rejected):
+
+```js
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3001', { auth: { token: userToken } });
+
+socket.emit('joinRoom', conversationId);
+socket.on('newMessage', (message) => console.log(message));
+socket.emit('sendMessage', { conversationId, senderId, content });
+```
+
+| Event | Direction | Payload | Behavior |
+| --- | --- | --- | --- |
+| `joinRoom` | client → server | `conversationId` | Joins the conversation's room. Ignored without error if the user isn't a participant. |
+| `sendMessage` | client → server | `{ conversationId, senderId, content }` | Persists the message, creates a notification for every other participant and broadcasts `newMessage` to the room. |
+| `newMessage` | server → client | the created message | Sent to everyone in the room, both for `sendMessage` and for `POST /conversations/:conversationId/messages`. |
+
+Notifications aren't pushed over the socket; read them with `GET /api/v1/notifications`.
 
 ## API Testing (Postman)
 
@@ -149,22 +212,10 @@ A ready-to-import Postman collection covering every `/api/v1` endpoint lives at
 | Variable | Default | Description |
 | --- | --- | --- |
 | `base_url` | `http://localhost:3001` | Matches the default `PORT` in `.env.example` — adjust if your `.env` uses a different one. |
-| `userToken` | *(empty)* | JWT signed with `SECRET_KEY`, payload `{ uuid: '<user-uuid>' }`. Used by every request except the `Internal` folder. |
-| `serviceToken` | *(empty)* | JWT signed with `SECRET_KEY`, payload `{ service: 'social-api' }`. Used only by the `Internal (Social API sync)` requests. |
-| `userUuid` | `user-uuid-1` | Path param for user-scoped requests (`GET /users/:uuid`, internal sync). |
+| `userToken` | *(empty)* | User JWT, payload `{ uuid: '<user-uuid>' }` (see [Authentication](#authentication)). Used by every request except the `Internal` folder. |
+| `serviceToken` | *(empty)* | Service JWT, payload `{ service: 'social-api' }`. Used only by the `Internal (Social API sync)` requests. |
+| `userUuid` | `3f6c1e2a-8b4d-4c9e-9a7f-2d5e6b1c0a94` | Path param for user-scoped requests (`GET /users/:uuid`, internal sync). Must be a UUID v4. |
 | `conversationId` | `1` | Path param for conversation/message requests. |
-
-This API doesn't issue tokens itself — it only verifies JWTs signed with the same `SECRET_KEY` as
-whoever issues them (see "Authentication" in `CLAUDE.md`). To generate a token for local testing,
-run something like:
-
-```bash
-node -e "console.log(require('jsonwebtoken').sign({ uuid: 'user-uuid-1' }, 'yoursecretkey'))"
-node -e "console.log(require('jsonwebtoken').sign({ service: 'social-api' }, 'yoursecretkey'))"
-```
-
-using the same value as `SECRET_KEY` in your `.env`, then paste the output into `userToken` /
-`serviceToken`.
 
 **Folders:**
 
@@ -175,8 +226,20 @@ using the same value as `SECRET_KEY` in your `.env`, then paste the output into 
 - `Internal (Social API sync)` — `PUT`/`DELETE /api/v1/internal/users/:uuid`, the endpoints the
   Social API calls on user create/update/delete (requires `serviceToken`, not `userToken`)
 
-Every successful response is wrapped as `{ "data": ... }` and every error as
-`{ "error": { "message": "..." } }` (see `utils/apiResponse.js` and the error handler in `app.js`).
+A typical first run: `PUT` a user (or two) through the internal folder, then create a
+conversation with their uuids and send messages.
+
+## Development
+
+```bash
+npm run lint                                  # ESLint
+npm test                                      # full test suite
+npx jest tests/routes/v1/messages.test.js     # a single file
+```
+
+The tests mock the Sequelize models and services, so they run without a live PostgreSQL
+connection. CI (`.github/workflows/ci.yml`) runs `lint` and `test` as separate jobs on every push
+and pull request.
 
 If you're a developer interested in using our API or have any questions, please don't hesitate to get in touch:
 

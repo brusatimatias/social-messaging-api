@@ -28,7 +28,8 @@ don't run the commands yourself to double-check.
 ```bash
 npm install                        # install dependencies
 cp .env.example .env               # fill in local credentials
-npx sequelize-cli db:migrate       # run migrations (requires Postgres running)
+npx sequelize-cli db:create        # create the DB for the current NODE_ENV (requires Postgres running)
+npx sequelize-cli db:migrate       # run migrations
 npm run dev                        # run with nodemon
 npm start                          # run in normal mode
 npm run lint                       # ESLint
@@ -102,6 +103,13 @@ npx jest -t 'part of the test name'        # single test by name
   actually asserts on (uuid, id, etc.). `tests/helpers/authHeader(uuid)` and
   `serviceAuthHeader(service)` build the `Authorization` header for user/service tokens in
   Supertest requests — every `/api/v1` request needs one.
+- `doc/` — `architecture.svg` (system diagram), `class-diagram.svg` (models and relationships),
+  `social-messaging-api.postman_collection.json` (every `/api/v1` endpoint). The `.png` files are
+  older versions kept only as a record of how the design evolved — don't update them or link them
+  as current.
+- `.claude/` — `settings.json` registers the Stop hook `hooks/verify.sh` (lint + tests, see
+  "Commands"); `agents/social-messaging-api-reviewer.md` is the reviewer subagent (see
+  "Conventions"). `settings.local.json` and the hook's `.verify-*` state files are gitignored.
 
 ## Conventions
 
@@ -117,13 +125,25 @@ npx jest -t 'part of the test name'        # single test by name
   `migrations/`, and if it exposes data over REST or sockets, a dedicated service — don't access the
   model directly from the route/handler except for simple single-model reads (e.g.
   `routes/v1/users.js`).
+- Keep the docs in sync with the code in the same change:
+  - New/changed REST route (path, body, status codes) ⇒ README "REST Endpoints" table and the
+    Postman collection.
+  - New/changed socket event ⇒ README "Real-Time Messaging" table.
+  - New/changed model, field or association ⇒ `doc/class-diagram.svg`.
+  - New service, external caller or transport ⇒ `doc/architecture.svg`.
+  - New environment variable ⇒ `.env.example` and the README "Installation" step.
+  - A decision recorded here (CLAUDE.md) that changes ⇒ update this file too.
+- Diagrams are hand-written SVG (plain shapes and text, no embedded raster images or draw.io
+  payload) so they're cheap to read and diff and can be edited directly. Edit the existing `.svg`;
+  don't add new `.png` diagrams. Example uuids in docs/Postman must be valid UUID v4
+  (`User.uuid` validates `isUUID: 4`).
 - After changing routes, services, models, migrations, middlewares, sockets or tests, delegate a
   review to the `social-messaging-api-reviewer` subagent before finishing, passing it the list of
   files you modified or created.
 
 ## Data model
 
-`User` is **not** the owner of identity/auth — per `doc/Social App-architecture.drawio v2.png` this API
+`User` is **not** the owner of identity/auth — per `doc/architecture.svg` this API
 (Node/Postgres) is the "Messaging API", separate from a "Social API" (Rails) that owns the full
 profile and login. That's why `User` here only has `uuid` (external reference to that Social API),
 `name`, `lastname`, `fullName` — no `password`/`email`/auth of its own, and it's `paranoid: true`

@@ -48,6 +48,13 @@ Your job is ONLY to review and report: don't edit files and don't run commands.
 - New environment variable ⇒ it's also in `.env.example`. No secrets committed.
 - A new CI step goes in its own job.
 
+**Documentation**
+- Changed REST routes are reflected in README's "REST Endpoints" table and the Postman collection
+  (`doc/social-messaging-api.postman_collection.json`); changed socket events in README's
+  "Real-Time Messaging" table.
+- Changed models/associations are reflected in `doc/class-diagram.svg`.
+- Diagrams stay as hand-written `.svg`; no new `.png` diagrams. Example uuids are valid UUID v4.
+
 **Tests**
 - They mock models/services (`jest.mock(...)`); they don't depend on Postgres.
 - They use the factories in `tests/factories/` instead of inline literals, with overrides only for what's asserted on.

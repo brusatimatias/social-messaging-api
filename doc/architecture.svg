@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="640" viewBox="0 0 1000 640" font-family="Helvetica, Arial, sans-serif">
+  <!-- System architecture. Previous versions: Social App-architecture.drawio.png (v1), kept for history. -->
+  <style>
+    .title { font-size: 18px; font-weight: bold; fill: #111111; }
+    .sub { font-size: 14px; }
+    .desc { font-size: 12px; fill: #444444; }
+    .edge { font-size: 12px; font-weight: bold; fill: #111111; }
+    .small { font-size: 11px; fill: #444444; }
+    .db { fill: #336699; stroke: #23476b; stroke-width: 1.5; }
+  </style>
+  <defs>
+    <marker id="arrow-black" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#111111"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#d61f1f"/>
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#7b3fe4"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="640" fill="#ffffff"/>
+
+  <!-- React client -->
+  <rect x="330" y="30" width="340" height="150" rx="12" fill="#ffffff" stroke="#d61f1f" stroke-width="3"/>
+  <text class="title" x="500" y="60" text-anchor="middle">React Client — social-client</text>
+  <text class="sub" x="500" y="90" text-anchor="middle" fill="#1f9bc4" font-weight="bold">Axios</text>
+  <text class="desc" x="500" y="110" text-anchor="middle">REST calls, bearer JWT attached</text>
+  <text class="sub" x="500" y="140" text-anchor="middle" fill="#7b3fe4" font-weight="bold">socket.io-client</text>
+  <text class="desc" x="500" y="160" text-anchor="middle">joinRoom / sendMessage, listens for newMessage</text>
+
+  <!-- Messaging API (this repo) -->
+  <rect x="40" y="330" width="360" height="170" rx="12" fill="#ffffff" stroke="#2e7d32" stroke-width="3"/>
+  <text class="title" x="220" y="360" text-anchor="middle">Messaging API (this repo)</text>
+  <text class="sub" x="220" y="385" text-anchor="middle" fill="#2e7d32">Node.js + Express + Socket.IO</text>
+  <text class="desc" x="220" y="410" text-anchor="middle">only verifies JWTs, never issues them</text>
+  <text class="desc" x="220" y="432" text-anchor="middle">local numeric user id per uuid</text>
+  <text class="desc" x="220" y="454" text-anchor="middle">1:1 and group conversations · messages</text>
+  <text class="desc" x="220" y="476" text-anchor="middle">notifications (persisted, read via REST)</text>
+
+  <!-- Social API -->
+  <rect x="600" y="330" width="360" height="170" rx="12" fill="#ffffff" stroke="#d61f1f" stroke-width="3"/>
+  <text class="title" x="780" y="360" text-anchor="middle">Social API</text>
+  <text class="sub" x="780" y="385" text-anchor="middle" fill="#d61f1f">Ruby on Rails</text>
+  <text class="desc" x="780" y="410" text-anchor="middle">source of truth for identity (uuid)</text>
+  <text class="desc" x="780" y="432" text-anchor="middle">login · issues user JWTs (SECRET_KEY)</text>
+  <text class="desc" x="780" y="454" text-anchor="middle">posts · comments · likes · follows</text>
+
+  <!-- Client → Messaging API -->
+  <line x1="420" y1="180" x2="262" y2="328" stroke="#111111" stroke-width="2" marker-end="url(#arrow-black)"/>
+  <text class="edge" x="365" y="245">REST · Bearer JWT</text>
+  <text class="small" x="365" y="262">Socket.IO handshake · auth.token</text>
+
+  <!-- Client → Social API -->
+  <line x1="580" y1="180" x2="738" y2="328" stroke="#111111" stroke-width="2" marker-end="url(#arrow-black)"/>
+  <text class="edge" x="672" y="245">REST · Bearer JWT</text>
+
+  <!-- Messaging API ⇢ Client: newMessage -->
+  <path d="M110 330 C40 250 120 110 326 100" fill="none" stroke="#7b3fe4" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#arrow-purple)"/>
+  <text x="48" y="230" transform="rotate(-90 48 230)" text-anchor="middle" font-size="14" font-weight="bold" fill="#7b3fe4">Socket.IO: newMessage</text>
+
+  <!-- Social API → Messaging API: user sync -->
+  <line x1="600" y1="415" x2="403" y2="415" stroke="#d61f1f" stroke-width="2.5" marker-end="url(#arrow-red)"/>
+  <text x="500" y="405" text-anchor="middle" font-size="13" font-weight="bold" fill="#d61f1f">user sync (by uuid)</text>
+  <text class="small" x="500" y="436" text-anchor="middle">PUT / DELETE</text>
+  <text class="small" x="500" y="451" text-anchor="middle">/api/v1/internal/users/:uuid</text>
+  <text class="small" x="500" y="466" text-anchor="middle">service JWT · one-way</text>
+
+  <!-- Databases -->
+  <line x1="220" y1="500" x2="220" y2="528" stroke="#111111" stroke-width="2" marker-end="url(#arrow-black)"/>
+  <path class="db" d="M188 540 V585 A32 9 0 0 0 252 585 V540"/>
+  <ellipse class="db" cx="220" cy="540" rx="32" ry="9" fill="#4a7fb5"/>
+  <text x="220" y="612" text-anchor="middle" font-size="13" fill="#111111">PostgreSQL</text>
+
+  <line x1="780" y1="500" x2="780" y2="528" stroke="#111111" stroke-width="2" marker-end="url(#arrow-black)"/>
+  <path class="db" d="M748 540 V585 A32 9 0 0 0 812 585 V540"/>
+  <ellipse class="db" cx="780" cy="540" rx="32" ry="9" fill="#4a7fb5"/>
+  <text x="780" y="612" text-anchor="middle" font-size="13" fill="#111111">PostgreSQL</text>
+</svg>
